@@ -2,6 +2,8 @@
 
 Stand: 8. November 2026. Quelle: [DJI FlightHub 2 OpenAPI V1.0](https://fh2-api.apifox.cn/). Die Versionsbezeichnung der Dokumentation ist **V1.0**; die dort gezeigten HTTP-Pfade beginnen mit **`/openapi/v0.1`**. Die [On-Premises OpenAPI V2.0](https://41b04hdzmc.apifox.cn/) hat einen anderen Vertrag. Die [DJI Cloud API](https://developer.dji.com/doc/cloud-api-tutorial/en/) beschreibt wiederum die Anbindung von Geräten an eine eigene Cloud-Plattform. Diese drei Verträge sind getrennt zu prüfen.
 
+Die zusätzliche [englische V1-Seitenfolge](dji-fh2-openapi-v1-englisch-folgeseiten-2026-11-08.md) dokumentiert die weiteren Endpunkte für Projekte, Geräte, Livestream, Aufgaben, Flugrouten und Rekonstruktion sowie ihre Grenzen für FlugDeck.
+
 ## Geprüfte V1-Endpunkte
 
 | Funktion | V1.0-Pfad und Antwort | Bedeutung für FlugDeck |

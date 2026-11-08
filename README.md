@@ -58,7 +58,7 @@ Die Member liegen unter `exp_flugdeck/`. Der Entry ruft `ctx.apiCall('/plugin/in
 
 [Projektprüfung und offene DJI-Befunde](docs/pruefung-0.2.1.md)
 
-[DJI On-Premises: Versionshinweise, Anmeldung und OpenAPI V2.0 im Abgleich](docs/dji-on-premises-referenz-2026-11-08.md) · [FlightHub 2 OpenAPI V1.0 im Abgleich](docs/dji-fh2-openapi-v1-referenz-2026-11-08.md) · [DJI Cloud API v1.20 und Cloud API 2 im Abgleich](docs/dji-cloud-api-referenz-2026-11-08.md)
+[DJI On-Premises: Versionshinweise, Anmeldung und OpenAPI V2.0 im Abgleich](docs/dji-on-premises-referenz-2026-11-08.md) · [FlightHub 2 OpenAPI V1.0 im Abgleich](docs/dji-fh2-openapi-v1-referenz-2026-11-08.md) · [Englische V1-Endpunkte und Integrationsgrenzen](docs/dji-fh2-openapi-v1-englisch-folgeseiten-2026-11-08.md) · [DJI Cloud API v1.20 und Cloud API 2 im Abgleich](docs/dji-cloud-api-referenz-2026-11-08.md)
 
 ## Prüfen und verpacken
 
