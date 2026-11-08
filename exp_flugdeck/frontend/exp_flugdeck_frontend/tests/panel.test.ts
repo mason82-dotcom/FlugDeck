@@ -36,3 +36,29 @@ it('zeigt Ergebnis und Fehler im gemounteten Panel und räumt das Abonnement auf
   app.unmount()
   expect(dispose).toHaveBeenCalledOnce()
 })
+
+it('zeigt beim erneuten Prüfen sofort den Ladezustand und blendet alte Werte aus', async () => {
+  let finish!: () => void
+  const client = {
+    state: { subscribe (listener: (value: StatusState) => void) {
+      listener({ phase: 'ready', detail: 'alte-version', checkedAt: 1, durationMs: 12 })
+      return { dispose () {} }
+    } },
+    refresh: vi.fn().mockResolvedValueOnce(undefined).mockImplementationOnce(() => new Promise<void>(resolve => { finish = resolve })),
+  }
+  const target = document.createElement('div')
+  const app = createApp(Panel, { client: client as unknown as StatusClient })
+  app.mount(target)
+  try {
+    await Promise.resolve()
+    await nextTick()
+    target.querySelector('button')!.click()
+    await nextTick()
+    expect(target.querySelector('[role=status]')?.textContent).toContain('Prüfung läuft')
+    expect(target.textContent).not.toContain('alte-version')
+    expect(target.textContent).not.toContain('12 ms')
+  } finally {
+    finish()
+    app.unmount()
+  }
+})

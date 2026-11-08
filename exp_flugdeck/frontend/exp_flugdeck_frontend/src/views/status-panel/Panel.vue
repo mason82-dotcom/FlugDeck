@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import type { StatusClient, StatusState } from './contract'
 import { initialStatus } from './contract'
 
@@ -7,6 +7,11 @@ const { client } = defineProps<{ client: StatusClient }>()
 const state = ref<StatusState>(initialStatus)
 const bridgeError = ref('')
 const pending = ref(false)
+const display = computed<StatusState>(() => {
+  if (pending.value) return { ...initialStatus, phase: 'loading' }
+  if (bridgeError.value) return { ...initialStatus, phase: 'error', detail: bridgeError.value }
+  return state.value
+})
 const titles = { idle: 'Ungeprüft', loading: 'Prüfung läuft', ready: 'Erreichbar', error: 'Prüfung fehlgeschlagen' }
 const clock = new Intl.DateTimeFormat('de-DE', { timeStyle: 'medium' })
 const subscription = client.state.subscribe(next => { state.value = next })
@@ -15,7 +20,7 @@ async function check () {
   pending.value = true
   bridgeError.value = ''
   try { await client.refresh() }
-  catch { bridgeError.value = 'Das Panel konnte den Plugin-Einstieg nicht erreichen.' }
+  catch { bridgeError.value = 'Das Cockpit konnte die Prüfung nicht abschließen. Bitte erneut prüfen.' }
   finally { pending.value = false }
 }
 onMounted(check)
@@ -24,18 +29,18 @@ onUnmounted(() => subscription.dispose())
 <template>
   <section lang="de" aria-label="Flugdeck">
     <header><span class="mark" aria-hidden="true">◭</span><h2>Flugdeck</h2></header>
-    <div class="readout" :data-phase="bridgeError ? 'error' : state.phase">
+    <div class="readout" :data-phase="display.phase">
       <h3>Plugin-Backend</h3>
-      <p role="status"><i aria-hidden="true"></i>{{ bridgeError ? 'Panelverbindung gestört' : titles[state.phase] }}</p>
+      <p role="status"><i aria-hidden="true"></i>{{ bridgeError ? 'Panelverbindung gestört' : titles[display.phase] }}</p>
     </div>
-    <p class="error" v-if="bridgeError || state.phase === 'error'">{{ bridgeError || state.detail }}</p>
-    <dl v-if="!bridgeError">
-      <div><dt>Backend-Version</dt><dd>{{ state.phase === 'ready' ? state.detail : '—' }}</dd></div>
-      <div><dt>Geprüft um</dt><dd>{{ state.checkedAt === null ? '—' : clock.format(state.checkedAt) }}</dd></div>
-      <div><dt>Anfragedauer</dt><dd>{{ state.durationMs === null ? '—' : state.durationMs + ' ms' }}</dd></div>
+    <p class="error" v-if="display.phase === 'error'">{{ display.detail }}</p>
+    <dl>
+      <div><dt>Backend-Version</dt><dd>{{ display.phase === 'ready' ? display.detail : '—' }}</dd></div>
+      <div><dt>Geprüft um</dt><dd>{{ display.checkedAt === null ? '—' : clock.format(display.checkedAt) }}</dd></div>
+      <div><dt>Anfragedauer</dt><dd>{{ display.durationMs === null ? '—' : display.durationMs + ' ms' }}</dd></div>
     </dl>
-    <button type="button" :disabled="pending || (!bridgeError && state.phase === 'loading')" @click="check">
-      {{ pending ? 'Prüfung läuft …' : 'Verbindung prüfen' }}
+    <button type="button" :disabled="display.phase === 'loading'" @click="check">
+      {{ display.phase === 'loading' ? 'Prüfung läuft …' : display.phase === 'error' ? 'Erneut prüfen' : 'Verbindung prüfen' }}
     </button>
   </section>
 </template>
