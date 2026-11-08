@@ -2,7 +2,7 @@
 
 Stand: 8. November 2026. Abgleich der drei unten genannten DJI-Handbuchseiten, ergänzt um Organisationsseiten und die verlinkte Schnittstellendokumentation mit FlugDeck 0.2.1. Das Handbuch beschreibt Funktionen des DJI-Produkts; daraus folgt keine bereits implementierte FlugDeck-Funktion und keine Freigabe für eine konkrete Installation.
 
-Für den separaten DJI-Cloud-API-Tutorial-Stand siehe [Cloud API v1.18 und Cloud API 2 im Abgleich](dji-cloud-api-referenz-2026-11-08.md).
+Für den separaten DJI-Cloud-API-Tutorial-Stand siehe [Cloud API v1.20 und Cloud API 2 im Abgleich](dji-cloud-api-referenz-2026-11-08.md).
 
 ## Primärquellen
 
