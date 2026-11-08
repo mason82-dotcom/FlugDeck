@@ -23,6 +23,19 @@ Die vorherigen [v1.18-Hinweise](https://developer.dji.com/doc/cloud-api-tutorial
 
 Das Tutorial erwähnt für Pilot unter anderem JSBridge und für Dock MQTT; Karten-/Medienfunktionen nutzen auch HTTPS und WebSocket. Die dortige „Organization Management“-Funktion für Dock 4 ist **kein** Nachweis eines FlightHub-OpenAPI-V2-REST-Pfades. Der FlightHub-Endpunkt `/openapi/v2.0/drc/health` ist kein Cloud-API-v1.20-Topic.
 
+## Abgleich der Cloud-API-Demo-Quellcodeanleitung
+
+Die [DJI-Anleitung „Source Code Deployment Steps“](https://developer.dji.com/doc/cloud-api-tutorial/en/quick-start/source-code-deployment-steps.html) beziehungsweise ihr [offizieller Dokumentationsquelltext](https://github.com/dji-sdk/Cloud-API-Doc/blob/master/docs/en/20.quick-start/20.source-code-deployment-steps.md) beschreibt die getrennten Beispiel-Repositories [Cloud-API-Demo-Web](https://github.com/dji-sdk/Cloud-API-Demo-Web) und [DJI-Cloud-API-Demo](https://github.com/dji-sdk/DJI-Cloud-API-Demo). Sie ist ein Aufbau für eine **eigene Drittanbieter-Cloud**, keine Anleitung zur Installation des FlugDeck-Pakets in FlightHub 2. Der direkte Webaufruf der DJI-Seite lieferte beim Abgleich keinen lesbaren Seitentext; der offizielle Dokumentationsquelltext und der Suchindex derselben Seite wurden zur Kontrolle herangezogen.
+
+| Demo-Schritt | Einordnung für FlugDeck 0.5.0 |
+| --- | --- |
+| DJI-Developer-App vom Typ Cloud API anlegen, App ID, App Key und App License erzeugen; im Demo `src/api/http/config.ts` setzen. | Diese Werte gehören zur **Cloud-API-Lizenzierung des Demos**, nicht zum FlightHub-Plugin-SDK oder zum On-Premises-OpenAPI-Token. Keine Demo-Konfigurationsdatei oder realen Schlüssel in dieses Repo übernehmen. |
+| Vue/Node-Frontend mit `baseURL` und `websocketURL`; optional Amap-Key und RTMP-Adresse; `npm install` und `npm run serve`. | FlugDeck nutzt den FH2-Plugin-Toolchain-Build und den Host-Entry. Ein eigener Demo-Webserver und Amap-Schlüssel sind für das Cockpit-Panel nicht erforderlich. |
+| Java/Spring-Backend mit EMQX, MySQL, Redis und optional Objektspeicher; `cloud_sample.sql` importieren und `application.yml` konfigurieren. | Das sind Dienste des Cloud-API-Beispiels. FlugDecks optionaler V2-Workflow führt einen HTTPS-GET aus und benötigt seine eigene `live_snapshot`-DDL im Plugin-Host; die Demo-Datenbank und MQTT-Konfiguration sind dafür nicht passend. |
+| Pilot 2 über „Cloud Services → Open Platforms“ mit der Demo-Login-Seite verbinden; nach Login sendet die Fernsteuerung Daten an den Demo-Broker. | Dies würde Pilot 2 mit einer **anderen Cloud-Plattform** verbinden. Es ist kein Test der FlightHub-2-Plugin-Anbindung oder des V2-Topologie-GET. Keine Controller-Verbindung und keinen Pilot-Login allein aufgrund dieser Anleitung umstellen. |
+
+Die Anleitung zeigt feste Demo-Logins und eine HTTP-Beispieladresse. Diese nur als historische Testbeispiele lesen, nicht für einen erreichbaren Dienst übernehmen. DJI hat am **10. April 2025** [das Ende der Pflege beider Demo-Repositories angekündigt](https://github.com/dji-sdk/DJI-Cloud-API-Demo#readme) und warnt vor ungeprüfter Produktionsnutzung. Aus den dortigen `npm`-, SQL-, MQTT- und Pilot-2-Schritten folgt daher weder eine aktuelle v1.20-Implementierung noch eine Freigabe für FlugDeck. Für eine spätere eigenständige Cloud-API-Integration zuerst aktuelle Protokollverträge und Gerätesupport prüfen und eine getrennte Architektur samt Secret-Verwaltung, Migration und Hardwaretest planen.
+
 ## Entwicklungsfolgen
 
 1. FlugDecks bisheriger Backend-Status bleibt ein Status des eigenen Plugins. v1.20 ändert keinen bestehenden Plugin-Vertrag und aktiviert keine Gerätesteuerung.
