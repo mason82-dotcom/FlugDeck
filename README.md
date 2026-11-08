@@ -4,6 +4,8 @@ Das Cockpit-Panel **Flugdeck** prüft beim Öffnen und über **Verbindung prüfe
 
 **Installationspaket:** [Flugdeck-FH2-0.2.0-Plugin.zip](packages/Flugdeck-FH2-0.2.0-Plugin.zip).
 
+![Das FlugDeck-Panel im DJI-Mock-Cockpit](docs/cockpit-panel.png)
+
 ## Inbetriebnahme
 
 Voraussetzungen sind Git, Node.js ab 20.19 (DJI empfiehlt 22 LTS), Corepack und pnpm 10.15.0. Die relative Anordnung ist wichtig: Die Plugin-Abhängigkeiten verweisen auf die lokal gebaute DJI-Toolchain. Die folgenden Befehle beginnen in einem Entwicklungsverzeichnis, in dem beide Repositories als Nachbarn liegen.
@@ -43,7 +45,7 @@ Die Member liegen unter `exp_flugdeck/`. Der Entry ruft `ctx.apiCall('/plugin/in
 
 ## Prüfen und verpacken
 
-Die Tests decken Host-Auswahl, Doppelklick, Zeitüberschreitung, Gatewayfehler, Wiederholung und das Entladen während einer Anfrage ab. Ein Vue-Test montiert das Panel und prüft Zustandswechsel, deaktivierte Bedienelemente und das Aufräumen beim Schließen. Uhrzeit und Anfragedauer beziehen sich auf den letzten abgeschlossenen Aufruf, einschließlich Fehlerantworten.
+Die Tests decken Host-Auswahl, Doppelklick, Zeitüberschreitung, Gatewayfehler, Wiederholung und das Entladen während einer Anfrage ab. Ein Vue-Test montiert das Panel und prüft Zustandswechsel, deaktivierte Bedienelemente und das Aufräumen beim Schließen. Im Browser wurde das Cockpit-Panel des DJI-Mock-Hosts geöffnet. Der Test bestätigte die Version 0.2.0, unterbrach anschließend den Gateway-Aufruf und prüfte die erfolgreiche Wiederholung nach Wiederherstellung. Uhrzeit und Anfragedauer beziehen sich auf den letzten abgeschlossenen Aufruf, einschließlich Fehlerantworten.
 
 `pnpm run pack` gibt bei Erfolg `UPLOAD_READY` und den Pfad zur ZIP-Datei aus. Die Installation im DJI-Zielmandanten und die visuelle Prüfung im echten Cockpit stehen aus.
 
