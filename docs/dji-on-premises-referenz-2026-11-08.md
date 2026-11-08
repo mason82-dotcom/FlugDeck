@@ -1,6 +1,6 @@
 # DJI FlightHub 2 On-Premises: Referenzabgleich
 
-Stand: 8. November 2026. Abgleich der drei unten genannten DJI-Handbuchseiten mit FlugDeck 0.2.1. Das Handbuch beschreibt Funktionen des DJI-Produkts; daraus folgt keine bereits implementierte FlugDeck-Funktion und keine Freigabe für eine konkrete Installation.
+Stand: 8. November 2026. Abgleich der drei unten genannten DJI-Handbuchseiten, ergänzt um Organisationsseiten und die verlinkte Schnittstellendokumentation mit FlugDeck 0.2.1. Das Handbuch beschreibt Funktionen des DJI-Produkts; daraus folgt keine bereits implementierte FlugDeck-Funktion und keine Freigabe für eine konkrete Installation.
 
 ## Primärquellen
 
@@ -9,6 +9,23 @@ Stand: 8. November 2026. Abgleich der drei unten genannten DJI-Handbuchseiten mi
 3. [On-Premises OpenAPI V2.0](https://fh.dji.com/user-manual/de/custom-development/open-api/private-cloud-v2.html) – Zweck, Funktionsliste, Authentifizierung, Beispiele.
 
 Die OpenAPI-Seite verlinkt für konkrete Schemata und Berechtigungen auf eine [separate Apifox-Schnittstellendokumentation](https://41b04hdzmc.apifox.cn/) mit [Authentifizierungsanleitung](https://41b04hdzmc.apifox.cn/9022450m0). Diese drei Handbuchseiten allein sind kein vollständiger Endpoint-Contract. Für einen späteren Adapter sind dort die konkreten Operationen und die Authentifizierungsanleitung zusätzlich gegen die installierte DJI-Version zu prüfen.
+
+## Ergänzung: Organisationsseiten und konkrete API-Pfade
+
+Die Seiten [Organisation erstellen](https://fh.dji.com/user-manual/de/organization-management/create-an-organization.html) und [Organisationseinstellungen](https://fh.dji.com/user-manual/de/organization-management/organization-settings.html) sind Bedienungsanleitungen. Sie enthalten selbst **keine HTTP-Pfade für die OpenAPI**. Die erste beschreibt die UI-Erstellung einer Organisation und die Superadministratorrolle des Erstellers; daraus folgt kein dokumentierter `POST`-Endpunkt zum Erstellen einer Organisation. Die zweite nennt eine Karte zum Anzeigen und Generieren von OpenAPI-Schlüsseln, bezeichnet diesen Abschnitt aber ausdrücklich als **Public-Cloud OpenAPI V2.0**. Dieser Schlüsselweg ist daher nicht als On-Premises-Authentifizierung belegt. Die Zwei-Faktor-Authentifizierung betrifft die Kontoanmeldung und ersetzt keinen API-Vertrag.
+
+Konkrete Pfade finden sich in der von DJI separat verlinkten [On-Premises-V2.0-Schnittstellendokumentation](https://41b04hdzmc.apifox.cn/):
+
+| Zweck | Methode und Pfad | Beleg |
+| --- | --- | --- |
+| Organisationsdetails abrufen | `GET /openapi/v2.0/manage/api/v1/organizations/{uuid}` | [Get Organization Details](https://41b04hdzmc.apifox.cn/473847920e0) |
+| Projekte einer Organisation abfragen | `GET /openapi/v2.0/manage/api/v1/organizations/{uuid}/projects` | [Query Organization Project List](https://41b04hdzmc.apifox.cn/473847918e0) |
+| Eigene Mitglieds- und Konfigurationsdaten zur Organisation abfragen | `GET /openapi/v2.0/manage/api/v1/organizations/{uuid}/users/current` | [Query Current User's Identity](https://41b04hdzmc.apifox.cn/473847932e0) |
+| Organisationsinformationen ändern | `PUT /openapi/v2.0/manage/api/v1/organizations/{uuid}` | [Update Organization Info](https://41b04hdzmc.apifox.cn/473847921e0) |
+
+Für einen ersten lesenden Adapter eignen sich nur die drei GET-Operationen als Kandidaten; die PUT-Operation verändert Organisationsdaten. Bei `GET .../projects` nennt DJI unter anderem `page`, `page_size`, `usage`, `sort_column` und `sort_type`, mit unterschiedlicher Antwortform für `usage=simple`. `GET .../organizations/{uuid}` kann `mfa_enabled` zurückliefern; der Geräte-Bindecode wird bei bestimmten Mitgliedsrollen zu `null`. Der Beispiel-Response der `users/current`-Seite zeigt allerdings lediglich `result` und `path` statt der beschriebenen Mitgliedsfelder: Response-Schema vor Implementierung zusätzlich prüfen. Apifox-generierte cURL-Beispiele enthalten leere Platzhalter und doppelte Header; sie sind keine unmittelbar lauffähigen Testkommandos.
+
+Für die On-Premises-API nennt DJI überwiegend `x-user-token` und `X-Project-Uuid`; `{uuid}` im Pfad ist die Organisations-UUID und nicht mit der Projekt-UUID gleichzusetzen. Benötigte Rechte, Tokenbeschaffung und reale Antwortformen müssen gegen den Zielmandanten validiert werden. FlugDeck 0.2.1 ruft keinen dieser Endpunkte auf.
 
 ## Versions- und Architekturabgleich
 
