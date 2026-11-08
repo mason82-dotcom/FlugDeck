@@ -26,3 +26,8 @@ export function duration (from: number | null, to: number | null): string {
   const minutes = Math.round((to - from) / 60000)
   return minutes < 60 ? minutes + ' min' : Math.floor(minutes / 60) + ' h ' + (minutes % 60) + ' min'
 }
+
+/** Zahl ohne Einheit für Kennzahl-Kacheln. */
+export function figure (value: number | null): string {
+  return value === null ? dash : decimal.format(value)
+}

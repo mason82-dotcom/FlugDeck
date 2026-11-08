@@ -2,8 +2,9 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import type { CockpitPanelState, StatusClient } from './contract'
 import { initialPanel } from './contract'
-import { dash, duration, position, stamp, time, unit } from '../shared/format'
+import { dash, duration, figure, position, stamp, time, unit } from '../shared/format'
 
+// Aufbau nach Dashboard-Schema: Status → Kennzahlen → Details → Systemzeile.
 const { client } = defineProps<{ client: StatusClient }>()
 const state = ref<CockpitPanelState>(initialPanel)
 const bridgeError = ref('')
@@ -13,7 +14,20 @@ const flightTitles = { idle: 'Kein Flug aktiv', recording: 'Flug wird protokolli
 const subscription = client.state.subscribe(next => { state.value = next })
 const t = computed(() => state.value.telemetry)
 const flight = computed(() => state.value.flight)
-const control = computed(() => t.value?.hasFlightControl === null || t.value === null ? dash : t.value.hasFlightControl ? 'Ja' : 'Nein')
+const recording = computed(() => flight.value.flightKey !== null)
+const control = computed(() => t.value === null || t.value.hasFlightControl === null ? dash : t.value.hasFlightControl ? 'Ja' : 'Nein')
+const backendPhase = computed(() => bridgeError.value ? 'error' : state.value.backend.phase)
+const busy = computed(() => pending.value || state.value.backend.phase === 'loading')
+
+const tiles = computed(() => {
+  const readout = t.value
+  return [
+    { label: 'Höhe', value: figure(readout?.heightM ?? null), unit: 'm', max: recording.value ? unit(flight.value.maxHeightM, 'm') : null },
+    { label: 'Geschwindigkeit', value: figure(readout?.horizontalSpeedMs ?? null), unit: 'm/s', max: recording.value ? unit(flight.value.maxSpeedMs, 'm/s') : null },
+    { label: 'Steigen/Sinken', value: figure(readout?.verticalSpeedMs ?? null), unit: 'm/s', max: null },
+    { label: 'Zum Startpunkt', value: figure(readout?.homeDistanceM ?? null), unit: 'm', max: null },
+  ]
+})
 
 async function check () {
   if (pending.value) return
@@ -30,59 +44,67 @@ onUnmounted(() => subscription.dispose())
   <section class="fd" lang="de" aria-label="Flugdeck">
     <header><span class="mark" aria-hidden="true">◭</span><h2>Flugdeck</h2></header>
 
-    <div class="readout" :data-phase="flight.phase">
-      <h3>Flugbuch</h3>
+    <div class="card status" :data-phase="flight.phase">
+      <p class="label">Flugbuch</p>
       <p class="headline" role="status"><i class="dot" aria-hidden="true"></i>{{ flightTitles[flight.phase] }}</p>
+      <p v-if="recording" class="meta">Seit {{ time(flight.startedAt) }}</p>
+      <p v-else-if="flight.lastFinished" class="meta">
+        Letzter Flug {{ stamp(flight.lastFinished.startedAt) }} · {{ duration(flight.lastFinished.startedAt, flight.lastFinished.finishedAt) }}
+      </p>
+      <p class="error" v-if="flight.message" role="alert">{{ flight.message }}</p>
     </div>
-    <p class="error" v-if="flight.message" role="alert">{{ flight.message }}</p>
-    <dl>
-      <div><dt>Start</dt><dd>{{ time(flight.startedAt) }}</dd></div>
-      <div><dt>Max. Höhe</dt><dd>{{ unit(flight.maxHeightM, 'm') }}</dd></div>
-      <div><dt>Max. Geschwindigkeit</dt><dd>{{ unit(flight.maxSpeedMs, 'm/s') }}</dd></div>
-      <div v-if="flight.lastFinished">
-        <dt>Letzter Flug</dt>
-        <dd>{{ stamp(flight.lastFinished.startedAt) }} · {{ duration(flight.lastFinished.startedAt, flight.lastFinished.finishedAt) }}</dd>
-      </div>
-    </dl>
 
     <h3 class="section">Telemetrie</h3>
-    <p v-if="!t" class="hint">Der Host stellt keine Telemetrie bereit.</p>
-    <dl v-else>
-      <div><dt>Höhe</dt><dd>{{ unit(t.heightM, 'm') }}</dd></div>
-      <div><dt>Geschwindigkeit horizontal</dt><dd>{{ unit(t.horizontalSpeedMs, 'm/s') }}</dd></div>
-      <div><dt>Geschwindigkeit vertikal</dt><dd>{{ unit(t.verticalSpeedMs, 'm/s') }}</dd></div>
-      <div><dt>Entfernung zum Startpunkt</dt><dd>{{ unit(t.homeDistanceM, 'm') }}</dd></div>
-      <div><dt>Position</dt><dd>{{ position(t.latitude, t.longitude) }}</dd></div>
-      <div><dt>Flugsteuerung bei mir</dt><dd>{{ control }}</dd></div>
-    </dl>
+    <p v-if="!t" class="hint empty">Der Host stellt keine Telemetrie bereit.</p>
+    <template v-else>
+      <ul class="tiles" aria-label="Aktuelle Flugwerte">
+        <li v-for="tile in tiles" :key="tile.label" class="card tile">
+          <span class="label">{{ tile.label }}</span>
+          <span class="figure">{{ tile.value }} <span class="unit">{{ tile.unit }}</span></span>
+          <span v-if="tile.max" class="max">max. {{ tile.max }}</span>
+        </li>
+      </ul>
+      <dl>
+        <div><dt>Position</dt><dd>{{ position(t.latitude, t.longitude) }}</dd></div>
+        <div><dt>Flugsteuerung bei mir</dt><dd>{{ control }}</dd></div>
+      </dl>
+    </template>
 
-    <div class="readout backend" :data-phase="bridgeError ? 'error' : state.backend.phase">
-      <h3>Plugin-Backend</h3>
-      <p role="status"><i class="dot" aria-hidden="true"></i>{{ bridgeError ? 'Panelverbindung gestört' : backendTitles[state.backend.phase] }}</p>
-    </div>
-    <p class="error" v-if="bridgeError || state.backend.phase === 'error'">
-      {{ bridgeError || state.backend.detail }} Bitte Netzwerk prüfen und die Verbindung erneut prüfen.
-    </p>
-    <dl v-if="!bridgeError">
-      <div><dt>Backend-Version</dt><dd>{{ state.backend.phase === 'ready' ? state.backend.detail : dash }}</dd></div>
-      <div><dt>Geprüft um</dt><dd>{{ time(state.backend.checkedAt) }}</dd></div>
-      <div><dt>Anfragedauer</dt><dd>{{ state.backend.durationMs === null ? dash : state.backend.durationMs + ' ms' }}</dd></div>
-    </dl>
-    <button type="button" :aria-busy="pending || state.backend.phase === 'loading'" :disabled="pending || (!bridgeError && state.backend.phase === 'loading')" @click="check">
-      {{ pending ? 'Prüfung läuft …' : 'Verbindung prüfen' }}
-    </button>
+    <footer :data-phase="backendPhase">
+      <div class="system">
+        <p role="status"><i class="dot" aria-hidden="true"></i>Plugin-Backend: {{ bridgeError ? 'Panelverbindung gestört' : backendTitles[state.backend.phase] }}</p>
+        <p v-if="!bridgeError && state.backend.checkedAt !== null" class="meta">
+          {{ state.backend.phase === 'ready' ? 'Version ' + state.backend.detail + ' · ' : '' }}{{ time(state.backend.checkedAt) }} · {{ state.backend.durationMs }} ms
+        </p>
+      </div>
+      <p class="error" v-if="bridgeError || state.backend.phase === 'error'">
+        {{ bridgeError || state.backend.detail }} Bitte Netzwerk prüfen und die Verbindung erneut prüfen.
+      </p>
+      <button type="button" class="secondary" :aria-busy="busy" :disabled="busy && !bridgeError" @click="check">
+        {{ busy ? 'Prüfung läuft …' : 'Verbindung prüfen' }}
+      </button>
+    </footer>
   </section>
 </template>
 <style src="../shared/theme.css"></style>
 <style scoped>
 header { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
 .mark { color: var(--fd-ok); font-size: 16px; }
-.headline { font-size: 20px; font-weight: 600; line-height: 1.25; overflow-wrap: anywhere; }
-.section { margin-top: 24px; }
-.hint { margin-block: 8px 16px; }
-.error { margin-block: 12px; }
-dl { margin-block: 8px 16px; }
-.backend { margin-top: 24px; }
-.backend p { font-size: 16px; font-weight: 600; }
-button { width: 100%; }
+.status { padding: 12px 16px; }
+.headline { margin-top: 4px; font-size: 16px; font-weight: 600; line-height: 1.25; overflow-wrap: anywhere; }
+.meta { margin-top: 4px; font-size: 12px; line-height: 1.4; color: var(--fd-muted); font-variant-numeric: tabular-nums; }
+.status .error { margin-top: 8px; }
+.section { margin: 24px 0 8px; }
+.empty { margin-bottom: 16px; }
+.tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
+.tile { display: flex; flex-direction: column; gap: 4px; padding: 12px; min-width: 0; }
+.figure { font-size: 24px; font-weight: 600; line-height: 1.25; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.unit { font-size: 12px; font-weight: 500; color: var(--fd-muted); }
+.max { font-size: 12px; line-height: 1.4; color: var(--fd-ok); font-variant-numeric: tabular-nums; }
+dl { margin-top: 8px; }
+dl div:last-child { border-bottom: 0; }
+footer { margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--fd-line); }
+.system p[role="status"] { font-weight: 500; }
+footer .error { margin-top: 8px; }
+button { width: 100%; margin-top: 12px; }
 </style>

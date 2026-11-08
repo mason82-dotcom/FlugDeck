@@ -2,11 +2,22 @@
  * Gemeinsame Flugdeck-Gestaltung (siehe DESIGN.md).
  * Schrift: 20 / 16 / 14 / 12 px, Stärken 400 / 500 / 600. Abstände: 4er-Raster, Abschnitte 8er-Raster.
  */
+/*
+ * Tokens nach Tailwind: slate (Neutrale), teal-300 (Akzent/Erfolg), amber-300 (läuft), rose-300 (Fehler).
+ * Radius: rounded-md 6px für Bedienelemente, rounded-lg 8px für Flächen.
+ */
 .fd {
-  --fd-surface: #182128; --fd-raised: #1e2930; --fd-text: #edf3f5; --fd-muted: #bdcbd2; --fd-line: #35444e;
-  --fd-ok: #94dbcb; --fd-busy: #f2cf8b; --fd-error: #ffae95; --fd-neutral: #a8b6bd;
+  --fd-surface: #0f172a; /* slate-900 – Fläche (60 %) */
+  --fd-raised: #1e293b;  /* slate-800 – Kacheln/Listen (30 %) */
+  --fd-text: #f1f5f9;    /* slate-100 */
+  --fd-muted: #94a3b8;   /* slate-400 */
+  --fd-line: #334155;    /* slate-700 */
+  --fd-ok: #5eead4;      /* teal-300 – Akzent (10 %) */
+  --fd-busy: #fcd34d;    /* amber-300 */
+  --fd-error: #fda4af;   /* rose-300 */
+  --fd-neutral: #64748b; /* slate-500 */
   box-sizing: border-box; min-width: 0; padding: 16px; background: var(--fd-surface); color: var(--fd-text);
-  font: 400 14px/1.5 system-ui, sans-serif;
+  font: 400 14px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
 .fd h2, .fd h3, .fd p, .fd dl, .fd dd { margin: 0; }
 .fd h2 { font-size: 16px; font-weight: 600; line-height: 1.25; }
@@ -14,15 +25,18 @@
 .fd dt { color: var(--fd-muted); }
 .fd dl div { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px 8px; padding: 8px 0; border-bottom: 1px solid var(--fd-line); }
 .fd dd { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; min-width: 0; }
-.fd .error { color: #ffbea8; overflow-wrap: anywhere; }
+.fd .error { color: #fecdd3; /* rose-200 */ overflow-wrap: anywhere; }
 .fd .hint { color: var(--fd-muted); }
-.fd button { min-height: 44px; padding: 8px 12px; color: #112328; background: var(--fd-ok); border: 0; border-radius: 4px; font: inherit; font-weight: 500; cursor: pointer; }
+.fd button { min-height: 44px; padding: 8px 12px; color: #112328; background: var(--fd-ok); border: 0; border-radius: 6px; font: inherit; font-weight: 500; cursor: pointer; transition: background-color 150ms ease-out, border-color 150ms ease-out; }
 .fd button.secondary { color: var(--fd-text); background: transparent; border: 1px solid var(--fd-line); }
-.fd button:disabled { background: #abbac0; cursor: wait; }
-.fd button:focus-visible, .fd input:focus-visible, .fd textarea:focus-visible { outline: 2px solid white; outline-offset: 2px; }
-.fd input, .fd textarea { box-sizing: border-box; width: 100%; min-height: 44px; padding: 8px; font: inherit; color: var(--fd-text); background: #0f161b; border: 1px solid var(--fd-line); border-radius: 4px; }
+.fd button.secondary:hover:not(:disabled) { background: var(--fd-raised); border-color: var(--fd-neutral); }
+@media (prefers-reduced-motion: reduce) { .fd button { transition: none; } }
+.fd button:disabled { color: var(--fd-muted); background: var(--fd-raised); border-color: var(--fd-line); cursor: wait; }
+.fd button:focus-visible, .fd input:focus-visible, .fd textarea:focus-visible { outline: 2px solid var(--fd-ok); outline-offset: 2px; }
+.fd input, .fd textarea { box-sizing: border-box; width: 100%; min-height: 44px; padding: 8px; font: inherit; color: var(--fd-text); background: #020617; /* slate-950 */ border: 1px solid var(--fd-line); border-radius: 6px; }
 .fd .readout { border-inline-start: 4px solid var(--signal, var(--fd-neutral)); padding-inline-start: 12px; }
 .fd [data-phase="ready"], .fd [data-phase="recording"] { --signal: var(--fd-ok); }
 .fd [data-phase="loading"] { --signal: var(--fd-busy); }
 .fd [data-phase="error"] { --signal: var(--fd-error); }
 .fd .dot { display: inline-block; width: 8px; height: 8px; margin: 0 8px 2px 0; border-radius: 50%; background: var(--signal, var(--fd-neutral)); }
+.fd .card { background: var(--fd-raised); border: 1px solid var(--fd-line); border-radius: 8px; }

@@ -73,7 +73,7 @@ onUnmounted(() => subscription.dispose())
 header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
 .error { margin-bottom: 16px; }
 input { margin: 4px 0 16px; }
-.frame { background: var(--fd-raised); border: 1px solid var(--fd-line); border-radius: 4px; }
+.frame { background: var(--fd-raised); border: 1px solid var(--fd-line); border-radius: 8px; }
 ol { list-style: none; margin: 0; padding: 0; }
 li { padding: 12px 16px; border-bottom: 1px solid var(--fd-line); }
 li:last-child { border-bottom: 0; }
