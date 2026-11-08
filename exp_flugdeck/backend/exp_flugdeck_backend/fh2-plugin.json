@@ -1,7 +1,7 @@
 {
   "pluginId": "exp_flugdeck_backend",
   "name": "Flugdeck Status",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "allowlist": [],
   "flows": [],
   "events": [],

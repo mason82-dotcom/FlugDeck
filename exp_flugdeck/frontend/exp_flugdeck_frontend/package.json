@@ -2,7 +2,7 @@
   "name": "exp_flugdeck_frontend",
   "private": true,
   "type": "module",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "scripts": {
     "test": "vitest run --maxWorkers=1",
     "tsc": "vue-tsc --noEmit -p tsconfig.json && tsc -p ../../backend/exp_flugdeck_backend/tsconfig.json",

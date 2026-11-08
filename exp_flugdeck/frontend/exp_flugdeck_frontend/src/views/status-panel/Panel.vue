@@ -4,13 +4,18 @@ import type { StatusClient, StatusState } from './contract'
 import { initialStatus } from './contract'
 import { aircraft, assessDock4, controllers, inspectPair } from './device-check'
 import type { AircraftId, ControllerId, DeviceId } from './device-check'
+import { advanceSimulation, initialSimulation, simulationReadout } from './dock4-simulator'
+import type { SimAction } from './dock4-simulator'
 
 const { client } = defineProps<{ client: StatusClient }>()
 const state = ref<StatusState>(initialStatus)
 const bridgeError = ref('')
 const pending = ref(false)
 const tab = ref<'status' | 'devices'>('status')
-const deviceTab = ref<'inventory' | 'dock4'>('inventory')
+const deviceTab = ref<'inventory' | 'dock4' | 'simulation'>('inventory')
+const simulation = ref(initialSimulation)
+const simReadout = computed(() => simulationReadout(simulation.value))
+function simulate (action: SimAction) { simulation.value = advanceSimulation(simulation.value, action) }
 const controller = ref<ControllerId | ''>('')
 const selectedAircraft = ref<AircraftId | ''>('')
 const pairing = computed(() => inspectPair(controller.value, selectedAircraft.value))
@@ -65,6 +70,7 @@ onUnmounted(() => subscription.dispose())
       <nav class="tabs subtabs" aria-label="Gerätefunktionen">
         <button type="button" :aria-current="deviceTab === 'inventory' ? 'page' : undefined" @click="deviceTab = 'inventory'">Ihre Geräte</button>
         <button type="button" :aria-current="deviceTab === 'dock4' ? 'page' : undefined" @click="deviceTab = 'dock4'">Dock 4 Referenz</button>
+        <button type="button" :aria-current="deviceTab === 'simulation' ? 'page' : undefined" @click="deviceTab = 'simulation'">Simulation</button>
       </nav>
       <div v-if="deviceTab === 'inventory'">
         <p class="intro">Controller & Fluggerät</p>
@@ -83,7 +89,7 @@ onUnmounted(() => subscription.dispose())
         </div>
         <p class="hint">Status: keine Live-Telemetrie · kein Gerätebefehl · kein Flugfreigabenachweis.</p>
       </div>
-      <div v-else>
+      <div v-else-if="deviceTab === 'dock4'">
       <p class="intro">Dock 4 · Cloud API v1.20</p>
       <p class="hint">Versionen manuell eingeben. Diese Prüfung liest keine Gerätedaten aus und gibt keinen Flug frei.</p>
       <label class="mode">O4-Betriebsmodus
@@ -103,6 +109,31 @@ onUnmounted(() => subscription.dispose())
       </ol>
       <p class="assessment" :data-result="assessment.status" role="status">{{ assessmentLabels[assessment.status] }}</p>
       <p class="hint">O4 ist das Gateway; Dock 4 und Matrice 5TD sind Untergeräte. Ein Relay kann Teil der Topologie sein. Die Modusumschaltung erfolgt am Gerät oder in DJI-Anwendungen.</p>
+      </div>
+      <div v-else class="simulator">
+        <p class="sim-badge">SIMULATION · OFFLINE</p>
+        <p class="intro">O4 → Dock 4 → Matrice 5TD</p>
+        <p class="hint">Illustrative Zustandsfolge ohne echte Geräte, DJI-Protokollnachrichten oder Flugsteuerung. Die Werte stammen ausschließlich aus diesem Panel.</p>
+        <p class="assessment" :data-result="simulation.phase === 'link-lost' ? 'blocked' : 'unknown'" role="status">{{ simReadout.description }}</p>
+        <dl class="sim-readout">
+          <div><dt>O4 Ground Station · Gateway</dt><dd>{{ simReadout.gateway }}</dd></div>
+          <div><dt>DJI Dock 4 · Untergerät</dt><dd>{{ simReadout.dock }}</dd></div>
+          <div><dt>Matrice 5TD · Untergerät</dt><dd>{{ simReadout.aircraft }}</dd></div>
+          <div><dt>Dock-Abdeckung</dt><dd>{{ simReadout.cover }}</dd></div>
+          <div><dt>Fluggerät</dt><dd>{{ simReadout.aircraftLocation }}</dd></div>
+          <div><dt>Beispielaufgabe</dt><dd>{{ simReadout.task }}</dd></div>
+        </dl>
+        <div class="sim-actions">
+          <button type="button" v-if="simulation.phase === 'off'" @click="simulate('start')">Simulation starten</button>
+          <button type="button" v-if="['idle', 'preparing', 'operating', 'recovering'].includes(simulation.phase)" @click="simulate('next')">Nächster Simulationsschritt</button>
+          <button type="button" v-if="simulation.phase !== 'off' && simulation.phase !== 'link-lost'" class="secondary" @click="simulate('lose-link')">Verbindungsverlust simulieren</button>
+          <button type="button" v-if="simulation.phase === 'link-lost'" @click="simulate('restore')">Verbindung wiederherstellen</button>
+          <button type="button" v-if="simulation.phase !== 'off'" class="secondary" @click="simulate('reset')">Zurücksetzen</button>
+        </div>
+        <div v-if="simulation.events.length" class="sim-events">
+          <h3>Simulationsverlauf</h3>
+          <ol><li v-for="(event, index) in simulation.events" :key="index">{{ event }}</li></ol>
+        </div>
       </div>
     </div>
   </section>
@@ -150,4 +181,10 @@ select:focus-visible, input:focus-visible { outline: 2px solid #94dbcb; outline-
 .modules { padding: 12px; margin-bottom: 12px; border: 1px solid #35444e; border-radius: 4px; }
 .modules ul { padding-left: 18px; margin: 8px 0 12px; }
 .modules li { margin: 4px 0; }
+.sim-badge { display: inline-block; padding: 4px 7px; margin-bottom: 10px; color: #171d22; background: #f2cf8b; font-size: 11px; font-weight: 800; letter-spacing: .04em; }
+.sim-actions { display: grid; gap: 8px; }
+.sim-actions .secondary { color: #edf3f5; background: #35444e; border: 1px solid #52636d; }
+.sim-events { margin-top: 18px; border-top: 1px solid #35444e; padding-top: 12px; }
+.sim-events ol { padding-left: 20px; margin: 8px 0 0; font-size: 12px; color: #bdcbd2; }
+.sim-events li { margin: 5px 0; }
 </style>
