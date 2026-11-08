@@ -6,13 +6,28 @@ import { aircraft, assessDock4, controllers, inspectPair } from './device-check'
 import type { AircraftId, ControllerId, DeviceId } from './device-check'
 import { advanceSimulation, initialSimulation, simulationReadout } from './dock4-simulator'
 import type { SimAction } from './dock4-simulator'
+import { fixtureSnapshot, observeSnapshot, parseDeviceSnapshot } from './device-observation'
+import type { DeviceSnapshot } from './device-observation'
 
 const { client } = defineProps<{ client: StatusClient }>()
 const state = ref<StatusState>(initialStatus)
 const bridgeError = ref('')
 const pending = ref(false)
 const tab = ref<'status' | 'devices'>('status')
-const deviceTab = ref<'inventory' | 'dock4' | 'simulation'>('inventory')
+const deviceTab = ref<'inventory' | 'observations' | 'dock4' | 'simulation'>('inventory')
+const snapshot = ref<DeviceSnapshot | null>(null)
+const importText = ref('')
+const importError = ref('')
+const observedAt = ref(Date.now())
+const observedDevices = computed(() => snapshot.value ? observeSnapshot(snapshot.value, observedAt.value) : [])
+function loadExample () { snapshot.value = fixtureSnapshot(Date.now()); observedAt.value = Date.now(); importError.value = '' }
+function importSnapshot () {
+  snapshot.value = null
+  importError.value = ''
+  try { snapshot.value = parseDeviceSnapshot(importText.value); observedAt.value = Date.now(); importText.value = '' }
+  catch (error) { importText.value = ''; importError.value = error instanceof Error ? error.message : 'Import fehlgeschlagen.' }
+}
+let clockTimer: ReturnType<typeof setInterval> | undefined
 const simulation = ref(initialSimulation)
 const simReadout = computed(() => simulationReadout(simulation.value))
 function simulate (action: SimAction) { simulation.value = advanceSimulation(simulation.value, action) }
@@ -25,6 +40,9 @@ const assessment = computed(() => assessDock4(mode.value, versions.value))
 const firmwareLabels = { missing: 'Nicht angegeben', invalid: 'Format prüfen', below: 'Unter Mindestversion', meets: 'Mindestversion erreicht' }
 const assessmentLabels = { unknown: 'Angaben fehlen', blocked: 'Voraussetzung nicht erfüllt', compatible: 'Versionsprüfung bestanden' }
 const pairingLabels = { unknown: 'Kombination auswählen', compatible: 'Modellkombination laut DJI kompatibel', incompatible: 'Modellkombination laut DJI nicht kompatibel' }
+const pairingText = computed(() => pairing.value.model?.fh2Support === 'unsupported'
+  ? 'Hardwareprofil vorhanden · FlightHub 2 derzeit nicht unterstützt'
+  : pairingLabels[pairing.value.status])
 const display = computed<StatusState>(() => {
   if (pending.value) return { ...initialStatus, phase: 'loading' }
   if (bridgeError.value) return { ...initialStatus, phase: 'error', detail: bridgeError.value }
@@ -41,8 +59,8 @@ async function check () {
   catch { bridgeError.value = 'Das Cockpit konnte die Prüfung nicht abschließen. Bitte erneut prüfen.' }
   finally { pending.value = false }
 }
-onMounted(check)
-onUnmounted(() => subscription.dispose())
+onMounted(() => { void check(); clockTimer = setInterval(() => { observedAt.value = Date.now() }, 1000) })
+onUnmounted(() => { subscription.dispose(); if (clockTimer) clearInterval(clockTimer) })
 </script>
 <template>
   <section lang="de" aria-label="Flugdeck">
@@ -69,6 +87,7 @@ onUnmounted(() => subscription.dispose())
     <div v-else class="devices">
       <nav class="tabs subtabs" aria-label="Gerätefunktionen">
         <button type="button" :aria-current="deviceTab === 'inventory' ? 'page' : undefined" @click="deviceTab = 'inventory'">Ihre Geräte</button>
+        <button type="button" :aria-current="deviceTab === 'observations' ? 'page' : undefined" @click="deviceTab = 'observations'">Gerätedaten</button>
         <button type="button" :aria-current="deviceTab === 'dock4' ? 'page' : undefined" @click="deviceTab = 'dock4'">Dock 4 Referenz</button>
         <button type="button" :aria-current="deviceTab === 'simulation' ? 'page' : undefined" @click="deviceTab = 'simulation'">Simulation</button>
       </nav>
@@ -81,13 +100,36 @@ onUnmounted(() => subscription.dispose())
         <label class="mode">Fluggerät
           <select v-model="selectedAircraft"><option value="">Bitte auswählen</option><option v-for="item in aircraft" :key="item.id" :value="item.id">{{ item.name }}</option></select>
         </label>
-        <p class="assessment" :data-result="pairing.status" role="status">{{ pairingLabels[pairing.status] }}</p>
+        <p class="assessment" :data-result="pairing.model?.fh2Support === 'unsupported' ? 'blocked' : pairing.status" role="status">{{ pairingText }}</p>
         <div v-if="pairing.model" class="modules">
           <h3>Relevante Module</h3>
+          <p v-if="pairing.model.fh2Support === 'unsupported'" class="error">M3M ist derzeit für FlightHub 2 nicht unterstützt. Diese Hardwarekombination ist keine FlightHub-Freigabe.</p>
           <ul><li v-for="module in pairing.model.modules" :key="module">{{ module }}</li></ul>
           <p class="hint">Modellprofil zur Planung. Datenzugriff, Sensorfunktionen und Cloud-Unterstützung werden erst nach einer echten Geräteanbindung geprüft.</p>
         </div>
         <p class="hint">Status: keine Live-Telemetrie · kein Gerätebefehl · kein Flugfreigabenachweis.</p>
+      </div>
+      <div v-else-if="deviceTab === 'observations'" class="observations">
+        <p class="intro">Gerätebeobachtungen</p>
+        <p class="hint">Nur anonymisierte Testdaten oder manuell eingefügte Schnappschüsse. Keine Verbindung zu FlightHub OpenAPI, DJI Cloud API oder echten Geräten.</p>
+        <button type="button" @click="loadExample">Anonymisierte Beispieldaten laden</button>
+        <label class="import-label" for="device-json">JSON-Schnappschuss manuell importieren</label>
+        <textarea id="device-json" v-model="importText" rows="5" placeholder='{"schemaVersion":1,"devices":[{"key":"demo-rc","model":"rc-pro","gatewayKey":null,"online":true,"topologyAt":0,"osdAt":null}]}' spellcheck="false" />
+        <button type="button" class="secondary" @click="importSnapshot">Schnappschuss prüfen</button>
+        <p v-if="importError" class="error" role="alert">{{ importError }} Bisherige Daten wurden verworfen.</p>
+        <p v-if="snapshot" class="source">Quelle: {{ snapshot.source === 'fixture' ? 'anonymisierte Beispieldaten' : 'manueller Import' }} · {{ observedDevices.length }} Geräte · kein Live-Zugriff</p>
+        <ul v-if="snapshot" class="observed-list">
+          <li v-for="item in observedDevices" :key="item.key">
+            <strong>{{ item.name }}</strong><span class="alias">{{ item.key }}{{ item.gatewayKey ? ' · Gateway ' + item.gatewayKey : ' · Controller' }}</span>
+            <span v-if="item.support === 'unsupported'" class="error">Für FlightHub 2 derzeit nicht unterstützt</span>
+            <dl>
+              <div><dt>Topologie</dt><dd :data-state="item.online">{{ item.online === 'online' ? 'ONLINE · gemeldet' : item.online === 'offline' ? 'OFFLINE · gemeldet' : 'UNBEKANNT' }}</dd></div>
+              <div><dt>OSD</dt><dd :data-state="item.osd">{{ item.osd === 'fresh' ? 'Aktuell · gemeldet' : 'UNBEKANNT' }}</dd></div>
+            </dl>
+          </li>
+        </ul>
+        <p v-else-if="!importError" class="hint">Noch keine Daten geladen.</p>
+        <p class="hint">Topologie gilt höchstens 60 Sekunden, OSD höchstens 10 Sekunden als aktuell. Ohne frisches Gateway wird das zugehörige Fluggerät als unbekannt angezeigt. Dies ist keine Flugfreigabe.</p>
       </div>
       <div v-else-if="deviceTab === 'dock4'">
       <p class="intro">Dock 4 · Cloud API v1.20</p>
@@ -187,4 +229,17 @@ select:focus-visible, input:focus-visible { outline: 2px solid #94dbcb; outline-
 .sim-events { margin-top: 18px; border-top: 1px solid #35444e; padding-top: 12px; }
 .sim-events ol { padding-left: 20px; margin: 8px 0 0; font-size: 12px; color: #bdcbd2; }
 .sim-events li { margin: 5px 0; }
+.observations > button { margin-bottom: 10px; }
+.observations .secondary { color: #edf3f5; background: #35444e; border: 1px solid #52636d; }
+.import-label { display: block; margin-top: 8px; color: #bdcbd2; font-size: 12px; }
+textarea { box-sizing: border-box; width: 100%; min-height: 106px; margin: 6px 0 10px; padding: 8px; color: #edf3f5; background: #24323b; border: 1px solid #52636d; border-radius: 4px; font: 12px/1.4 ui-monospace, monospace; resize: vertical; }
+textarea:focus-visible { outline: 2px solid #94dbcb; outline-offset: 2px; }
+.source { font-size: 12px; color: #f2cf8b; margin: 8px 0 12px; }
+.observed-list { list-style: none; padding: 0; margin: 0 0 16px; }
+.observed-list li { padding: 11px 0; border-top: 1px solid #35444e; }
+.observed-list .alias { display: block; font-size: 12px; color: #bdcbd2; overflow-wrap: anywhere; }
+.observed-list dl { margin: 6px 0 0; }
+.observed-list dl div { padding: 3px 0; border: 0; }
+.observed-list dd[data-state="online"], .observed-list dd[data-state="fresh"] { color: #94dbcb; }
+.observed-list dd[data-state="offline"] { color: #ffbea8; }
 </style>

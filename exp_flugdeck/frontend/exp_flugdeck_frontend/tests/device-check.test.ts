@@ -10,6 +10,7 @@ it('ordnet verfügbare Controller den Fluggeräten zu und meldet fehlende Auswah
   expect(inspectPair('rc-plus-2', 'm4t').status).toBe('compatible')
   expect(inspectPair('rc-pro', 'm4t').status).toBe('incompatible')
   expect(inspectPair('rc-pro', 'm3m').model?.modules).toContain('Multispektral-Medien')
+  expect(inspectPair('rc-pro', 'm3m').model?.fh2Support).toBe('unsupported')
 })
 
 it('vergleicht Firmware als vier numerische Komponenten und lehnt unklare Angaben ab', () => {

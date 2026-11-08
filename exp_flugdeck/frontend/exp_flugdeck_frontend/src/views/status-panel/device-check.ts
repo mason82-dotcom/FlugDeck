@@ -15,10 +15,10 @@ export const controllers = [
 ] as const
 
 export const aircraft = [
-  { id: 'm3e', name: 'DJI Mavic 3E', controller: 'rc-pro', modules: ['Karte & Wegpunkte', 'RGB-Medien'] },
-  { id: 'm3t', name: 'DJI Mavic 3T', controller: 'rc-pro', modules: ['Karte & Wegpunkte', 'RGB-Medien', 'Thermal-Medien'] },
-  { id: 'm3m', name: 'DJI Mavic 3M', controller: 'rc-pro', modules: ['Karte & Wegpunkte', 'Multispektral-Medien'] },
-  { id: 'm4t', name: 'DJI Matrice 4T', controller: 'rc-plus-2', modules: ['Karte & Wegpunkte', 'RGB-Medien', 'Thermal-Medien'] },
+  { id: 'm3e', name: 'DJI Mavic 3E', controller: 'rc-pro', fh2Support: 'candidate', modules: ['Karte & Wegpunkte', 'RGB-Medien'] },
+  { id: 'm3t', name: 'DJI Mavic 3T', controller: 'rc-pro', fh2Support: 'candidate', modules: ['Karte & Wegpunkte', 'RGB-Medien', 'Thermal-Medien'] },
+  { id: 'm3m', name: 'DJI Mavic 3M', controller: 'rc-pro', fh2Support: 'unsupported', modules: ['Multispektral-Medien'] },
+  { id: 'm4t', name: 'DJI Matrice 4T', controller: 'rc-plus-2', fh2Support: 'candidate', modules: ['Karte & Wegpunkte', 'RGB-Medien', 'Thermal-Medien'] },
 ] as const
 
 export type ControllerId = typeof controllers[number]['id']
