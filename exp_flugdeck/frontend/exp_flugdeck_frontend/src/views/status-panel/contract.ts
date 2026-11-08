@@ -12,7 +12,7 @@ export const initialStatus: StatusState = {
 }
 interface StatusContract {
   state: StatusState;
-  methods: { refresh: () => Promise<void> };
+  methods: { refresh: () => Promise<void>; refreshLive: () => Promise<string> };
 }
 export const statusPanel = definePluginView<StatusContract>('status-panel')
 export type StatusClient = PluginViewClient<StatusContract>

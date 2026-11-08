@@ -2,7 +2,7 @@ import { aircraft, controllers } from './device-check'
 import type { AircraftId, ControllerId } from './device-check'
 
 export type ModelId = ControllerId | AircraftId
-export type ObservationSource = 'fixture' | 'manual'
+export type ObservationSource = 'fixture' | 'manual' | 'live'
 export interface DeviceObservation {
   key: string
   model: ModelId
@@ -64,6 +64,16 @@ export function parseDeviceSnapshot (json: string): DeviceSnapshot {
     }
   }
   return { schemaVersion: 1, source: 'manual', devices }
+}
+
+export function parseLiveSnapshot (value: unknown, now: number): DeviceSnapshot | 'unconfigured' | 'stale' {
+  if (!record(value) || typeof value.source !== 'string') throw new Error('Ungültige Live-Antwort.')
+  if (value.source === 'unconfigured' || value.source === 'stale') return value.source
+  if (value.source !== 'live' || !stamp(value.fetchedAt) || value.fetchedAt === null ||
+      value.fetchedAt > now + 5000 || now - value.fetchedAt > 60000) throw new Error('Live-Antwort ist ungültig oder veraltet.')
+  // Reuse the strict device projection validator and assign provenance only after validation.
+  const projected = parseDeviceSnapshot(JSON.stringify(value))
+  return { ...projected, source: 'live' }
 }
 
 export function fixtureSnapshot (now: number): DeviceSnapshot {

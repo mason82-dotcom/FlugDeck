@@ -1,10 +1,28 @@
 {
   "pluginId": "exp_flugdeck_backend",
   "name": "Flugdeck Status",
-  "version": "0.4.0",
-  "allowlist": [],
-  "flows": [],
+  "version": "0.5.0",
+  "allowlist": ["data:read", "data:write", "config:get", "egress:fetch"],
+  "flows": ["workflows/read-devices.json"],
   "events": [],
-  "connections": [],
-  "scripts": []
+  "connections": [
+    {
+      "id": "flugdeck.openapi.v2",
+      "description": "FlightHub 2 On-Premises OpenAPI V2.0 · nur lesend",
+      "requires": [
+        { "name": "baseUrl", "type": "string", "required": false },
+        { "name": "projectUuid", "type": "string", "required": false },
+        { "name": "userToken", "type": "string", "required": false, "secret": true }
+      ]
+    }
+  ],
+  "scripts": [
+    {
+      "name": "flugdeck-read-devices",
+      "path": "adapters/read-devices.ts",
+      "entry": "handle",
+      "allowlist": ["config:get", "egress:fetch", "data:write"],
+      "io": { "outputs": [ { "name": "count", "type": "number" } ] }
+    }
+  ]
 }

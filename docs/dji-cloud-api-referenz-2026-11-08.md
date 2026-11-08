@@ -14,10 +14,10 @@ Die vorherigen [v1.18-Hinweise](https://developer.dji.com/doc/cloud-api-tutorial
 
 ## Architekturabgleich
 
-| Zugang | DJI-System und Protokoll | FlugDeck 0.4.0 |
+| Zugang | DJI-System und Protokoll | FlugDeck 0.5.0 |
 | --- | --- | --- |
 | [Cloud API v1.20](https://developer.dji.com/doc/cloud-api-tutorial/en/) | DJI Pilot 2 oder Dock/Ground Station verbinden Gateways mit einer **eigenen Drittanbieter-Cloud** über MQTT, HTTPS und WebSocket. Das [Tutorial](https://developer.dji.com/doc/cloud-api-tutorial/en/tutorial-map.html) ordnet die Funktionen den Protokollen zu. | Lokaler Gerätecheck für Dock-4-Topologie und Mindestversionen mit manuellen Eingaben. Kein MQTT-Broker, keine Pilot-Cloud-Anbindung und keine Cloud-API-Topics oder Thing-Model-Bindung. |
-| [FlightHub On-Premises OpenAPI V2.0](https://fh.dji.com/user-manual/de/custom-development/open-api/private-cloud-v2.html) | REST-API einer **bestehenden FlightHub-2-On-Premises-Instanz**. | Kein OpenAPI-Client. |
+| [FlightHub On-Premises OpenAPI V2.0](https://fh.dji.com/user-manual/de/custom-development/open-api/private-cloud-v2.html) | REST-API einer **bestehenden FlightHub-2-On-Premises-Instanz**. | Serverseitiger, standardmäßig pausierter GET-Adapter für Projekt-Topologie; ohne Verbindung und DDL keine Live-Daten. |
 | [FlightHub-2-Plugin-SDK](https://github.com/dji-sdk/FlightHub-2-Plugin) | Plugin innerhalb des FlightHub-Hosts. | Cockpit-Statushandler über `ctx.apiCall('/plugin/invoke')`. |
 | [Cloud API 2](https://developer.dji.com/cloud-api-2/) | **Separate Produktlinie** mit PaaS, SDK und Frontend-Komponenten. | Nicht eingebaut; nicht mit Cloud API v1.20 oder FlightHub OpenAPI V2.0 gleichsetzen. |
 

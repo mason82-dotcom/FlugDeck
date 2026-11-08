@@ -127,7 +127,7 @@ it('kennzeichnet Beispielbeobachtungen und verwirft sie nach fehlerhaftem Import
   await nextTick()
   ;(target.querySelectorAll('.subtabs button')[1] as HTMLButtonElement).click()
   await nextTick()
-  ;(target.querySelector('.observations > button') as HTMLButtonElement).click()
+  ;(target.querySelectorAll('.observations > button')[1] as HTMLButtonElement).click()
   await nextTick()
   expect(target.textContent).toContain('anonymisierte Beispieldaten')
   expect(target.textContent).toContain('DJI Mavic 3E')
@@ -135,6 +135,35 @@ it('kennzeichnet Beispielbeobachtungen und verwirft sie nach fehlerhaftem Import
   ;(target.querySelector('.observations .secondary') as HTMLButtonElement).click()
   await nextTick()
   expect(target.querySelector('[role=alert]')?.textContent).toContain('Bisherige Daten wurden verworfen')
+  expect(target.querySelectorAll('.observed-list li')).toHaveLength(0)
+  app.unmount()
+})
+
+it('zeigt echte Backend-Projektion nur als Live-Quelle und löscht sie bei stale', async () => {
+  const now = Date.now()
+  const live = { schemaVersion: 1, source: 'live', fetchedAt: now, devices: [
+    { key: 'live-device-1', model: 'rc-pro', gatewayKey: null, online: true, topologyAt: now, osdAt: null },
+  ] }
+  const client = { state: { subscribe () { return { dispose () {} } } }, refresh: vi.fn().mockResolvedValue(undefined),
+    refreshLive: vi.fn().mockResolvedValueOnce(JSON.stringify(live)).mockResolvedValueOnce(JSON.stringify({ source: 'stale', fetchedAt: now - 120_000, devices: [] })) }
+  const target = document.createElement('div')
+  const app = createApp(Panel, { client: client as unknown as StatusClient })
+  app.mount(target)
+  await Promise.resolve()
+  ;(target.querySelectorAll('.tabs button')[1] as HTMLButtonElement).click()
+  await nextTick()
+  ;(target.querySelectorAll('.subtabs button')[1] as HTMLButtonElement).click()
+  await nextTick()
+  const button = target.querySelector('.observations > button') as HTMLButtonElement
+  button.click()
+  await Promise.resolve()
+  await nextTick()
+  expect(target.textContent).toContain('FlightHub On-Premises OpenAPI · letzter Abruf')
+  expect(target.textContent).toContain('OSDUNBEKANNT')
+  button.click()
+  await Promise.resolve()
+  await nextTick()
+  expect(target.textContent).toContain('Live-Snapshot ist veraltet')
   expect(target.querySelectorAll('.observed-list li')).toHaveLength(0)
   app.unmount()
 })

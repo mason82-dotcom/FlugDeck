@@ -4,6 +4,9 @@ import { initialStatus, statusPanel } from './views/status-panel/contract'
 import type { StatusState } from './views/status-panel/contract'
 
 const timeoutMs = 8000
+function isRecord (value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
 
 function describeFailure (error: unknown): string {
   if (isPluginError(error)) {
@@ -45,7 +48,18 @@ export default definePlugin({
         complete('error', describeFailure(error))
       }
     }
-    await statusPanel.handle(ctx, { state, methods: { refresh } })
+    async function refreshLive (): Promise<string> {
+      if (ctx.lifecycle.disposed) throw new Error('Plugin wurde entladen.')
+      const response = await ctx.apiCall('/plugin/invoke', {
+        method: 'POST', timeoutMs,
+        body: { pluginId: 'exp_flugdeck_backend', handler: 'flugdeck.devices', input: {} },
+      })
+      if (ctx.lifecycle.disposed || !isRecord(response) || response.code !== 0) {
+        throw new Error('Gerätedaten konnten nicht abgerufen werden.')
+      }
+      return JSON.stringify(response.data ?? null)
+    }
+    await statusPanel.handle(ctx, { state, methods: { refresh, refreshLive } })
     await ctx.extensions.contribute('status-panel', {
       visible: true, icon: 'flugdeck', label: 'Flugdeck', render: () => statusPanel.get(ctx),
     })

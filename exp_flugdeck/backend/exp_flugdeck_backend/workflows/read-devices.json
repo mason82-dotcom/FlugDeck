@@ -1,0 +1,17 @@
+{
+  "name": "flugdeck-read-devices",
+  "description": "Lesende FlightHub-On-Premises-Topologieabfrage",
+  "trigger": { "schedule": { "intervalSec": 30, "paused": true } },
+  "steps": [
+    {
+      "id": "read-topology",
+      "action": "run_script",
+      "inputs": {
+        "script": { "const": "flugdeck-read-devices" },
+        "connectorId": { "const": "flugdeck.openapi.v2" }
+      },
+      "timeoutSec": 20,
+      "maxAttempts": 1
+    }
+  ]
+}

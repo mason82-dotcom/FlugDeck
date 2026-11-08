@@ -6,7 +6,7 @@ import { aircraft, assessDock4, controllers, inspectPair } from './device-check'
 import type { AircraftId, ControllerId, DeviceId } from './device-check'
 import { advanceSimulation, initialSimulation, simulationReadout } from './dock4-simulator'
 import type { SimAction } from './dock4-simulator'
-import { fixtureSnapshot, observeSnapshot, parseDeviceSnapshot } from './device-observation'
+import { fixtureSnapshot, observeSnapshot, parseDeviceSnapshot, parseLiveSnapshot } from './device-observation'
 import type { DeviceSnapshot } from './device-observation'
 
 const { client } = defineProps<{ client: StatusClient }>()
@@ -18,9 +18,26 @@ const deviceTab = ref<'inventory' | 'observations' | 'dock4' | 'simulation'>('in
 const snapshot = ref<DeviceSnapshot | null>(null)
 const importText = ref('')
 const importError = ref('')
+const livePending = ref(false)
+const liveNotice = ref('')
 const observedAt = ref(Date.now())
 const observedDevices = computed(() => snapshot.value ? observeSnapshot(snapshot.value, observedAt.value) : [])
-function loadExample () { snapshot.value = fixtureSnapshot(Date.now()); observedAt.value = Date.now(); importError.value = '' }
+function loadExample () { snapshot.value = fixtureSnapshot(Date.now()); observedAt.value = Date.now(); importError.value = ''; liveNotice.value = '' }
+async function refreshLive () {
+  if (livePending.value) return
+  snapshot.value = null
+  importError.value = ''
+  liveNotice.value = ''
+  liveNotice.value = ''
+  livePending.value = true
+  try {
+    const result = parseLiveSnapshot(JSON.parse(await client.refreshLive()), Date.now())
+    if (result === 'unconfigured') liveNotice.value = 'Noch kein Live-Snapshot vorhanden. Verbindung und Workflow prüfen.'
+    else if (result === 'stale') liveNotice.value = 'Der letzte Live-Snapshot ist veraltet. Keine Gerätewerte werden angezeigt.'
+    else { snapshot.value = result; observedAt.value = Date.now() }
+  } catch { liveNotice.value = 'Live-Abruf fehlgeschlagen. Keine Gerätewerte werden angezeigt.' }
+  finally { livePending.value = false }
+}
 function importSnapshot () {
   snapshot.value = null
   importError.value = ''
@@ -111,13 +128,15 @@ onUnmounted(() => { subscription.dispose(); if (clockTimer) clearInterval(clockT
       </div>
       <div v-else-if="deviceTab === 'observations'" class="observations">
         <p class="intro">Gerätebeobachtungen</p>
-        <p class="hint">Nur anonymisierte Testdaten oder manuell eingefügte Schnappschüsse. Keine Verbindung zu FlightHub OpenAPI, DJI Cloud API oder echten Geräten.</p>
+        <p class="hint">Live-Werte stammen ausschließlich aus dem serverseitigen FlightHub-On-Premises-Adapter. Beispiele und Importe sind separat gekennzeichnet.</p>
+        <button type="button" :disabled="livePending" @click="refreshLive">{{ livePending ? 'Live-Daten werden abgerufen …' : 'Live-Daten abrufen' }}</button>
+        <p v-if="liveNotice" class="error" role="alert">{{ liveNotice }}</p>
         <button type="button" @click="loadExample">Anonymisierte Beispieldaten laden</button>
         <label class="import-label" for="device-json">JSON-Schnappschuss manuell importieren</label>
         <textarea id="device-json" v-model="importText" rows="5" placeholder='{"schemaVersion":1,"devices":[{"key":"demo-rc","model":"rc-pro","gatewayKey":null,"online":true,"topologyAt":0,"osdAt":null}]}' spellcheck="false" />
         <button type="button" class="secondary" @click="importSnapshot">Schnappschuss prüfen</button>
         <p v-if="importError" class="error" role="alert">{{ importError }} Bisherige Daten wurden verworfen.</p>
-        <p v-if="snapshot" class="source">Quelle: {{ snapshot.source === 'fixture' ? 'anonymisierte Beispieldaten' : 'manueller Import' }} · {{ observedDevices.length }} Geräte · kein Live-Zugriff</p>
+        <p v-if="snapshot" class="source">Quelle: {{ snapshot.source === 'fixture' ? 'anonymisierte Beispieldaten' : snapshot.source === 'manual' ? 'manueller Import' : 'FlightHub On-Premises OpenAPI · letzter Abruf' }} · {{ observedDevices.length }} Geräte</p>
         <ul v-if="snapshot" class="observed-list">
           <li v-for="item in observedDevices" :key="item.key">
             <strong>{{ item.name }}</strong><span class="alias">{{ item.key }}{{ item.gatewayKey ? ' · Gateway ' + item.gatewayKey : ' · Controller' }}</span>
@@ -129,7 +148,7 @@ onUnmounted(() => { subscription.dispose(); if (clockTimer) clearInterval(clockT
           </li>
         </ul>
         <p v-else-if="!importError" class="hint">Noch keine Daten geladen.</p>
-        <p class="hint">Topologie gilt höchstens 60 Sekunden, OSD höchstens 10 Sekunden als aktuell. Ohne frisches Gateway wird das zugehörige Fluggerät als unbekannt angezeigt. Dies ist keine Flugfreigabe.</p>
+        <p class="hint">Topologie gilt höchstens 60 Sekunden, OSD höchstens 10 Sekunden als aktuell. Der OpenAPI-Topologieabruf enthält keinen verifizierten OSD-Zeitstempel; Live-OSD bleibt deshalb UNBEKANNT. Ohne frisches Gateway wird das Fluggerät unbekannt angezeigt. Dies ist keine Flugfreigabe.</p>
       </div>
       <div v-else-if="deviceTab === 'dock4'">
       <p class="intro">Dock 4 · Cloud API v1.20</p>

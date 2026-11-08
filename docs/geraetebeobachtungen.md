@@ -1,6 +1,6 @@
 # FlugDeck-Gerätebeobachtungen · Version 1
 
-Dieses **lokale Importformat** ist ein FlugDeck-Testvertrag, kein DJI-Cloud-API-Payload und keine FlightHub-OpenAPI-Antwort. Die Ansicht liest weder Geräte noch Zielmandanten aus. Sie akzeptiert ausschließlich anonymisierte Kennungen; keine Seriennummern, Projekt-UUIDs, URLs, Tokens oder Kundendaten eingeben. Der Text wird nach dem Prüfen entfernt, nicht gespeichert und nicht an das Backend gesendet. Die Ansicht kennzeichnet jede geladene Quelle als Beispiel oder manuellen Import, niemals als Live-Daten.
+Dieses **lokale Importformat** ist ein FlugDeck-Testvertrag, kein DJI-Cloud-API-Payload und keine FlightHub-OpenAPI-Antwort. Der manuelle Import liest keine Geräte oder Zielmandanten aus. Er akzeptiert ausschließlich anonymisierte Kennungen; keine Seriennummern, Projekt-UUIDs, URLs, Tokens oder Kundendaten eingeben. Der Text wird nach dem Prüfen entfernt, nicht gespeichert und nicht an das Backend gesendet. Die Ansicht kennzeichnet Beispiel, Import und den separaten [serverseitigen Live-Pfad](live-anbindung.md) mit ihrer jeweiligen Herkunft.
 
 ```json
 {
@@ -16,4 +16,4 @@ Dieses **lokale Importformat** ist ein FlugDeck-Testvertrag, kein DJI-Cloud-API-
 
 Die Auswertung zeigt Topologie höchstens 60 Sekunden und OSD höchstens 10 Sekunden nach der Meldung als aktuell. Eine fehlende, veraltete oder offline gemeldete Gateway-Topologie macht den Status des verknüpften Fluggeräts unbekannt. OSD ohne frische Online-Topologie bleibt unbekannt. Diese Grenzwerte sind **FlugDeck-Demo-Regeln**, keine DJI-Protokollgarantie. Der DJI-Cloud-API-Statuskanal meldet Änderungen ereignisbasiert; aus einem ausbleibenden State-Event allein wird hier keine Offline-Behauptung abgeleitet. Die M3M wird für FlightHub 2 derzeit nicht als unterstützt behandelt und daher nie als online dargestellt.
 
-Ein späterer On-Premises-OpenAPI-Adapter muss konkrete lesende Endpunkte, Berechtigungen und Response-Schemata der installierten DJI-Version prüfen und seine Daten serverseitig in diesen Vertrag projizieren. `x-user-token` und `X-Project-Uuid` gehören nicht in das Plugin-Frontend oder ein Installationspaket. Der derzeitige Import ist keine Abnahme der realen Hardware.
+Der On-Premises-OpenAPI-Adapter projiziert einen dokumentierten lesenden Topologie-Endpunkt in diesen Vertrag; die konkrete Antwortform und Rechte der installierten DJI-Version müssen im Zielmandanten geprüft werden. `x-user-token` und `X-Project-Uuid` gehören nicht in das Plugin-Frontend oder ein Installationspaket. Der manuelle Import ist keine Abnahme der realen Hardware.

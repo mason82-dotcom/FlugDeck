@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { fixtureSnapshot, observeSnapshot, parseDeviceSnapshot } from '../src/views/status-panel/device-observation'
+import { fixtureSnapshot, observeSnapshot, parseDeviceSnapshot, parseLiveSnapshot } from '../src/views/status-panel/device-observation'
 
 const now = 1_800_000_000_000
 
@@ -27,6 +27,13 @@ it('normalisiert nur erlaubte Felder und behandelt M3M in FlightHub 2 als nicht 
   expect(parsed.source).toBe('manual')
   expect(JSON.stringify(parsed)).not.toContain('must-not-survive')
   expect(observeSnapshot(parsed, now)[1]).toMatchObject({ support: 'unsupported', online: 'unknown', osd: 'unknown' })
+})
+
+it('akzeptiert eine frische serverseitige Projektion als live und lehnt alte Stände ab', () => {
+  const data = { ...fixtureSnapshot(now), source: 'live', fetchedAt: now }
+  expect(parseLiveSnapshot(data, now)).toMatchObject({ source: 'live', devices: expect.any(Array) })
+  expect(() => parseLiveSnapshot(data, now + 61_000)).toThrow('veraltet')
+  expect(parseLiveSnapshot({ source: 'unconfigured' }, now)).toBe('unconfigured')
 })
 
 it('lehnt unbekannte Modelle, doppelte Kennungen, kaputte Topologie und ungültige Zeitwerte ab', () => {

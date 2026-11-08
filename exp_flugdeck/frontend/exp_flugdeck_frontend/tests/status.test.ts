@@ -5,7 +5,7 @@ import plugin from '../src/plugin'
 
 interface Session {
   state: { get: () => StatusState };
-  methods: { refresh: () => Promise<void> };
+  methods: { refresh: () => Promise<void>; refreshLive: () => Promise<string> };
 }
 const view = vi.hoisted(() => ({ handle: vi.fn(), get: vi.fn() }))
 vi.mock('../src/views/status-panel/contract', async importOriginal => ({
@@ -77,5 +77,16 @@ describe('Flugdeck-Panel', () => {
     await session.methods.refresh()
     expect(session.state.get().checkedAt).toBeNull()
     expect(apiCall).toHaveBeenCalledTimes(1)
+  })
+
+  it('ruft den lesenden Gerätehandler auf und reicht nur dessen Daten weiter', async () => {
+    const apiCall = vi.fn().mockResolvedValue({ code: 0, data: { source: 'unconfigured', devices: [] } })
+    await activate(apiCall)
+    const session = view.handle.mock.lastCall![1] as Session
+    expect(JSON.parse(await session.methods.refreshLive())).toEqual({ source: 'unconfigured', devices: [] })
+    expect(apiCall).toHaveBeenCalledWith('/plugin/invoke', {
+      method: 'POST', timeoutMs: 8000,
+      body: { pluginId: 'exp_flugdeck_backend', handler: 'flugdeck.devices', input: {} },
+    })
   })
 })
