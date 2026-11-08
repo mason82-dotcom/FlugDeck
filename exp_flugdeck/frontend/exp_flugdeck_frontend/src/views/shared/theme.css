@@ -1,0 +1,21 @@
+/* Gemeinsame Flugdeck-Farben (siehe DESIGN.md). */
+.fd {
+  --fd-surface: #182128; --fd-text: #edf3f5; --fd-muted: #bdcbd2; --fd-line: #35444e;
+  --fd-ok: #94dbcb; --fd-busy: #f2cf8b; --fd-error: #ffae95; --fd-neutral: #a8b6bd;
+  box-sizing: border-box; min-width: 0; padding: 16px; background: var(--fd-surface); color: var(--fd-text);
+  font: 14px/1.45 system-ui, sans-serif;
+}
+.fd h2, .fd h3, .fd p, .fd dl, .fd dd { margin: 0; }
+.fd h2 { font-size: 18px; font-weight: 650; }
+.fd h3, .fd dt { font-size: 13px; font-weight: 500; color: var(--fd-muted); }
+.fd dl div { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 2px 8px; padding: 6px 0; border-bottom: 1px solid var(--fd-line); }
+.fd dd { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; min-width: 0; }
+.fd .error { color: #ffbea8; overflow-wrap: anywhere; }
+.fd button { min-height: 44px; padding: 6px 12px; color: #112328; background: var(--fd-ok); border: 0; border-radius: 4px; font: inherit; font-weight: 600; cursor: pointer; }
+.fd button:disabled { background: #abbac0; cursor: wait; }
+.fd button:focus-visible, .fd input:focus-visible, .fd textarea:focus-visible { outline: 2px solid white; outline-offset: 2px; }
+.fd .readout { border-inline-start: 3px solid var(--signal, var(--fd-neutral)); padding-inline-start: 10px; }
+.fd [data-phase="ready"], .fd [data-phase="recording"] { --signal: var(--fd-ok); }
+.fd [data-phase="loading"] { --signal: var(--fd-busy); }
+.fd [data-phase="error"] { --signal: var(--fd-error); }
+.fd .dot { display: inline-block; width: 7px; height: 7px; margin: 0 8px 3px 0; border-radius: 50%; background: var(--signal, var(--fd-neutral)); }

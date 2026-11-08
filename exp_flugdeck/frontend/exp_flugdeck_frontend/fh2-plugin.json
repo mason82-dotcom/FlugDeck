@@ -1,20 +1,48 @@
 {
   "id": "exp_flugdeck_frontend",
   "name": "Flugdeck",
-  "version": "0.2.0",
+  "version": "0.3.0",
+  "description": "Telemetrie und Flugbuch für Cockpit, Projekt, Planung und Meldungen",
   "entry": "./plugin.js",
   "permissions": [
-    "platform:http"
+    "platform:http",
+    "cockpit:context",
+    "cockpit:telemetry",
+    "project:context",
+    "plan:form-context"
   ],
   "extensions": [
     {
       "id": "status-panel",
       "point": "cockpit.ui.left-panel"
+    },
+    {
+      "id": "flightlog-sidebar",
+      "point": "project.sidebar-actions",
+      "path": "/flugdeck-flugbuch"
+    },
+    {
+      "id": "plan-note",
+      "point": "plan.form-extensions",
+      "planType": "all"
+    },
+    {
+      "id": "alert-popup",
+      "point": "message.alert-popups"
     }
   ],
   "views": {
     "status-panel": {
       "entry": "./views/status-panel.js"
+    },
+    "flightlog-page": {
+      "entry": "./views/flightlog-page.js"
+    },
+    "plan-note": {
+      "entry": "./views/plan-note.js"
+    },
+    "alert-popup": {
+      "entry": "./views/alert-popup.js"
     }
   },
   "contributes": {

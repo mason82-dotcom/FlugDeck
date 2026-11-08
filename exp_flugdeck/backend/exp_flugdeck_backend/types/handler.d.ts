@@ -4,4 +4,6 @@
 
 declare const log: import('fh2-plugin-sdk/backend').LogApi
 
+declare const store: import('fh2-plugin-sdk/backend').StoreApi
+
 declare const ctx: import('fh2-plugin-sdk/backend').HandlerCtx

@@ -1,8 +1,11 @@
 {
   "pluginId": "exp_flugdeck_backend",
-  "name": "Flugdeck Status",
-  "version": "0.2.0",
-  "allowlist": [],
+  "name": "Flugdeck Backend",
+  "version": "0.3.0",
+  "allowlist": [
+    "data:read",
+    "data:write"
+  ],
   "flows": [],
   "events": [],
   "connections": [],

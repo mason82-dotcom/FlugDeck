@@ -1,5 +1,6 @@
 import type { HandlerCtx } from 'fh2-plugin-sdk/backend'
 
-export function status (_input: Readonly<Record<string, unknown>>, _ctx: HandlerCtx) {
-  return { service: 'flugdeck', version: '0.2.0' }
+/** flugdeck.status: Erreichbarkeit und Version des Backends. */
+export function status (_input: Readonly<Record<string, unknown>>, ctx: HandlerCtx) {
+  return { service: 'flugdeck', version: ctx.pluginVersion || '0.3.0' }
 }

@@ -1,10 +1,23 @@
 # Flugdeck für DJI FlightHub 2
 
-Das Cockpit-Panel **Flugdeck** prüft beim Öffnen und über **Verbindung prüfen**, ob sein Backend erreichbar ist. Bei Erfolg zeigt es die vom Handler gemeldete Version sowie Uhrzeit und Dauer der Prüfung. Nach acht Sekunden meldet der DJI-Aufruf eine Zeitüberschreitung. Bei einem Fehler kann die Prüfung wiederholt werden. Die angezeigte Version beschreibt ausschließlich das Plugin.
+Flugdeck ist ein FlightHub-2-Plugin mit Frontend und Backend. Es zeigt im Cockpit Live-Telemetrie und führt automatisch ein Flugbuch. Im Projekt listet es die erfassten Flüge auf. In der Aufgabenplanung ergänzt es ein Notizfeld. Für Meldungen gibt es ein vorbereitetes Popup. Version 0.3.0 ist das Grundgerüst für weitere Funktionen.
 
-**Installationspaket:** [Flugdeck-FH2-0.2.0-Plugin.zip](packages/Flugdeck-FH2-0.2.0-Plugin.zip).
+**Installationspaket (Stand 0.2.0):** [Flugdeck-FH2-0.2.0-Plugin.zip](packages/Flugdeck-FH2-0.2.0-Plugin.zip). Das Paket für 0.3.0 wird mit `pnpm run pack` erzeugt, sobald es freigegeben ist.
 
 ![Das FlugDeck-Panel im DJI-Mock-Cockpit](docs/cockpit-panel.png)
+
+## Funktionen nach Host
+
+| Host | Erweiterungspunkt | Inhalt |
+| --- | --- | --- |
+| Cockpit | `cockpit.ui.left-panel` | Flugbuch-Status mit Start, maximaler Höhe und Geschwindigkeit. Telemetrie: Höhe, Geschwindigkeiten, Entfernung zum Startpunkt, Position, Flugsteuerung. Backend-Prüfung mit Version und Antwortzeit |
+| Project | `project.sidebar-actions` (`/flugdeck-flugbuch`) | Seite **Flugbuch** mit den Flügen des Projekts, neueste zuerst |
+| Plan | `plan.form-extensions` (alle Aufgabentypen) | Optionales Feld **Flugbuch-Notiz**. Eine nicht leere Notiz wird als `biz_ext.flugdeck.note` mit der Aufgabe gespeichert |
+| Message | `message.alert-popups` | Unsichtbarer Popup-Platzhalter für spätere Hinweise |
+
+Das **Flugbuch** startet automatisch. Meldet `cockpit:context` eine neue `flightId`, legt das Panel einen Eintrag an. Fällt die `flightId` weg oder wechselt sie, schließt es den Eintrag mit der maximalen Höhe und Geschwindigkeit ab. Erfasst wird nur, solange das Cockpit-Panel geladen ist. Wird es mitten im Flug geschlossen, bleibt der Eintrag aktiv. Beim nächsten Öffnen mit derselben `flightId` wird er weitergeführt.
+
+**Medien:** FlightHub 2 hat keinen Erweiterungspunkt für die Mediengalerie. Die SDK-Hosts sind nur `cockpit`, `plan`, `message` und `project`. Deshalb hat jeder Flugbuch-Eintrag das Feld `media_ref`, gesetzt über `flightlog.attachMedia`. Eine automatische Zuordnung, zum Beispiel über die Backend-Fähigkeit `media:read`, steht noch aus.
 
 ## Inbetriebnahme
 
@@ -36,17 +49,37 @@ pnpm run dev
 
 | Bestandteil | Aufgabe |
 | --- | --- |
-| `packages.json` und `exp_flugdeck/capabilities.json` | Paket und zugehörige Capability deklarieren |
-| `frontend/exp_flugdeck_frontend/src/plugin.ts` | Cockpit-Erweiterung anmelden, Status halten und den Gateway-Aufruf ausführen |
-| `src/views/status-panel/` im Frontend | Vue-Panel über den typisierten View-Vertrag anbinden |
-| `backend/exp_flugdeck_backend/handlers/flugdeck/status.ts` | Versionsauskunft für `flugdeck.status` liefern |
+| `frontend/…/src/plugin.ts` | Einstieg; verteilt nach `ctx.host.id` auf `src/hosts/<host>/activate.ts` |
+| `src/api/flugdeck-api.ts` | Aufrufe von `/plugin/invoke` mit Zeitlimit, Prüfung der Antwort und deutsche Fehlertexte |
+| `src/domain/telemetry.ts`, `src/domain/flight-tracker.ts` | Telemetrie aufbereiten; Flugerkennung über `flightId`, Maximalwerte, geordnete start/finish-Aufrufe |
+| `src/views/<view>/` | Vue-Views über typisierte View-Verträge; gemeinsame Farben in `views/shared/theme.css` |
+| `backend/…/schema.sql` | Tabelle `plugin_db_flugdeck_flight` (Speichervertrag; vor dem Deployment beim Betreiber ausführen) |
+| `backend/…/handlers/` | `flugdeck.status`, `flightlog.start`, `flightlog.finish`, `flightlog.list`, `flightlog.attachMedia` |
+| `backend/…/shared/` | Speicherzugriff (`store`), Eingabeprüfung, Zeitformat |
 
-Die Member liegen unter `exp_flugdeck/`. Der Entry ruft `ctx.apiCall('/plugin/invoke', …)` mit der Backend-ID `exp_flugdeck_backend` auf. Das Frontend deklariert ausschließlich `platform:http`. Das Backend hat eine leere Allowlist und enthält weder Ereignisabonnements noch Workflows. Authentifizierung und Routing übernimmt der DJI-Host.
+Berechtigungen im Frontend: `platform:http`, `cockpit:context`, `cockpit:telemetry`, `project:context`, `plan:form-context`. Backend-Allowlist: `data:read`, `data:write`. Fehlt im Host eine Capability, bleibt das betroffene Panel trotzdem nutzbar und zeigt einen Hinweis. Authentifizierung und Routing übernimmt der DJI-Host.
 
 ## Prüfen und verpacken
 
-Die Tests decken Host-Auswahl, Doppelklick, Zeitüberschreitung, Gatewayfehler, Wiederholung und das Entladen während einer Anfrage ab. Ein Vue-Test montiert das Panel und prüft Zustandswechsel, deaktivierte Bedienelemente und das Aufräumen beim Schließen. Im Browser wurde das Cockpit-Panel des DJI-Mock-Hosts geöffnet. Der Test bestätigte die Version 0.2.0, unterbrach anschließend den Gateway-Aufruf und prüfte die erfolgreiche Wiederholung nach Wiederherstellung. Uhrzeit und Anfragedauer beziehen sich auf den letzten abgeschlossenen Aufruf, einschließlich Fehlerantworten.
+`pnpm test` führt 24 Tests aus:
 
-`pnpm run pack` gibt bei Erfolg `UPLOAD_READY` und den Pfad zur ZIP-Datei aus. Die Installation im DJI-Zielmandanten und die visuelle Prüfung im echten Cockpit stehen aus.
+- Cockpit: Backend-Prüfung, Telemetrie und Flugerkennung
+- Flugtracker: Wechsel, fehlendes Projekt, Startfehler und Maximalwerte
+- Project, Plan und Message
+- Vue-Panel
+- Backend-Handler gegen einen Speicher im Arbeitsspeicher (`backend/…/tests/`)
+
+`generate`, `validate`, `typecheck` und `build` laufen fehlerfrei durch. Im DJI-Mock-Host (`pnpm run dev`) wurden zwei Ansichten geprüft:
+
+- **Cockpit:** Das Panel zeigt Telemetrie und erfasst den Mock-Flug automatisch.
+- **Project:** Die Flugbuch-Seite lädt über das lokale Backend.
+
+Die Plan- und Message-Erweiterungen sind nur durch Tests abgedeckt.
+
+`pnpm run pack` gibt bei Erfolg `UPLOAD_READY` und den Pfad zur ZIP-Datei aus. Offen sind noch:
+
+- Installation im DJI-Zielmandanten
+- Ausführung von `schema.sql` in der Plugin-Datenbank
+- Prüfung im echten FlightHub 2
 
 [DJI-Plattformarchitektur](https://github.com/dji-sdk/FlightHub-2-Plugin/blob/f2947c90670c2e3382ead6e8d9ab68c9170c3fa9/docs/cn/90.plugin-development/30.detailed-guide/10.concepts/20.platform-architecture.md) · [SDK-Aufruf und Lebenszyklus](https://github.com/dji-sdk/FlightHub-2-Plugin/blob/f2947c90670c2e3382ead6e8d9ab68c9170c3fa9/packages/fh2-plugin-sdk/src/contracts/context.ts) · [SDK-Fehlerstruktur](https://github.com/dji-sdk/FlightHub-2-Plugin/blob/f2947c90670c2e3382ead6e8d9ab68c9170c3fa9/packages/fh2-plugin-sdk/src/contracts/errors.ts)
