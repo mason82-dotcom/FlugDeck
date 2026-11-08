@@ -1,0 +1,10 @@
+packages:
+  - exp_flugdeck/frontend/*
+overrides:
+  fh2-plugin-sdk: file:../FlightHub-2-Plugin/packages/fh2-plugin-sdk
+  fh2-plugin-toolchain: file:../FlightHub-2-Plugin/packages/fh2-plugin-toolchain
+onlyBuiltDependencies:
+  - esbuild
+ignoredBuiltDependencies:
+  - core-js
+  - unrs-resolver

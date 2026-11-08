@@ -1,0 +1,20 @@
+{
+  "name": "flugdeck-fh2",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.15.0",
+  "scripts": {
+    "generate": "fh2-plugin generate --root exp_flugdeck",
+    "validate": "fh2-plugin validate --root exp_flugdeck",
+    "build": "fh2-plugin build --root exp_flugdeck",
+    "dev": "fh2-plugin dev --root exp_flugdeck",
+    "pack": "fh2-plugin pack --root exp_flugdeck",
+    "test": "pnpm -r run test",
+    "typecheck": "pnpm -r run tsc"
+  },
+  "devDependencies": {
+    "fh2-plugin-sdk": "file:../FlightHub-2-Plugin/packages/fh2-plugin-sdk",
+    "fh2-plugin-toolchain": "file:../FlightHub-2-Plugin/packages/fh2-plugin-toolchain"
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "id": "exp_flugdeck_frontend",
+  "name": "Flugdeck",
+  "version": "0.1.0",
+  "entry": "./plugin.js",
+  "permissions": [
+    "platform:http"
+  ],
+  "extensions": [
+    {
+      "id": "status-panel",
+      "point": "cockpit.ui.left-panel"
+    }
+  ],
+  "views": {
+    "status-panel": {
+      "entry": "./views/status-panel.js"
+    }
+  },
+  "contributes": {
+    "icons": [
+      {
+        "id": "flugdeck",
+        "src": "./icons/flugdeck.svg"
+      }
+    ]
+  }
+}

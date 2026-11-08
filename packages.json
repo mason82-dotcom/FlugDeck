@@ -1,0 +1,9 @@
+[
+  {
+    "packageId": "exp_flugdeck_package",
+    "name": "Flugdeck",
+    "capabilityIds": [
+      "exp_flugdeck"
+    ]
+  }
+]
