@@ -18,7 +18,7 @@ it('zeigt Ergebnis und Fehler im gemounteten Panel und räumt das Abonnement auf
   await Promise.resolve()
   await nextTick()
   expect(target.textContent).toContain('Panelverbindung gestört')
-  const button = target.querySelector('button')!
+  const button = target.querySelector('.readout + .error + dl + button, dl + button') as HTMLButtonElement
   button.click()
   await Promise.resolve()
   update({ ...initialStatus, phase: 'loading' })
@@ -52,7 +52,7 @@ it('zeigt beim erneuten Prüfen sofort den Ladezustand und blendet alte Werte au
   try {
     await Promise.resolve()
     await nextTick()
-    target.querySelector('button')!.click()
+    ;(target.querySelector('dl + button') as HTMLButtonElement).click()
     await nextTick()
     expect(target.querySelector('[role=status]')?.textContent).toContain('Prüfung läuft')
     expect(target.textContent).not.toContain('alte-version')
@@ -61,4 +61,36 @@ it('zeigt beim erneuten Prüfen sofort den Ladezustand und blendet alte Werte au
     finish()
     app.unmount()
   }
+})
+
+it('prüft eingegebene Dock-4-Topologie ohne einen Geräteaufruf', async () => {
+  const client = {
+    state: { subscribe () { return { dispose () {} } } },
+    refresh: vi.fn().mockResolvedValue(undefined),
+  }
+  const target = document.createElement('div')
+  const app = createApp(Panel, { client: client as unknown as StatusClient })
+  app.mount(target)
+  await Promise.resolve()
+  target.querySelectorAll('.tabs button')[1]!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  await nextTick()
+  target.querySelectorAll('.subtabs button')[1]!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  await nextTick()
+  expect(target.textContent).toContain('Angaben fehlen')
+  const mode = target.querySelector('select')!
+  mode.value = 'external'
+  mode.dispatchEvent(new Event('change', { bubbles: true }))
+  const inputs = target.querySelectorAll<HTMLInputElement>('input')
+  for (const [index, value] of ['19.01.00.58', '19.01.00.07', '19.01.00.07'].entries()) {
+    inputs[index]!.value = value
+    inputs[index]!.dispatchEvent(new Event('input', { bubbles: true }))
+  }
+  await nextTick()
+  expect(target.querySelector('.assessment')?.textContent).toContain('Versionsprüfung bestanden')
+  inputs[0]!.value = '19.01.00.57'
+  inputs[0]!.dispatchEvent(new Event('input', { bubbles: true }))
+  await nextTick()
+  expect(target.querySelector('.assessment')?.textContent).toContain('Voraussetzung nicht erfüllt')
+  expect(client.refresh).toHaveBeenCalledTimes(1)
+  app.unmount()
 })
