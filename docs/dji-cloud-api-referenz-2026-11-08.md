@@ -36,6 +36,18 @@ Die [DJI-Anleitung „Source Code Deployment Steps“](https://developer.dji.com
 
 Die Anleitung zeigt feste Demo-Logins und eine HTTP-Beispieladresse. Diese nur als historische Testbeispiele lesen, nicht für einen erreichbaren Dienst übernehmen. DJI hat am **10. April 2025** [das Ende der Pflege beider Demo-Repositories angekündigt](https://github.com/dji-sdk/DJI-Cloud-API-Demo#readme) und warnt vor ungeprüfter Produktionsnutzung. Aus den dortigen `npm`-, SQL-, MQTT- und Pilot-2-Schritten folgt daher weder eine aktuelle v1.20-Implementierung noch eine Freigabe für FlugDeck. Für eine spätere eigenständige Cloud-API-Integration zuerst aktuelle Protokollverträge und Gerätesupport prüfen und eine getrennte Architektur samt Secret-Verwaltung, Migration und Hardwaretest planen.
 
+### Docker-Variante des Beispiels
+
+Die separate [DJI-Seite „Docker Deployment Steps“](https://developer.dji.com/doc/cloud-api-tutorial/en/quick-start/docker-deployment-steps.html) und der [offizielle Dokumentationsquelltext](https://github.com/dji-sdk/Cloud-API-Doc/blob/master/docs/en/20.quick-start/30.docker-deployment-steps.md) beschreiben ein historisches `cloud_api_sample_docker_1.0.0.zip`. Es enthält `docker-compose.yml`, ein Image-Archiv, Datenverzeichnis, Quellcode und Skripte zum Neubau von Frontend- und Backend-Images. Der Ablauf lädt das Archiv mit `docker load`, setzt im Demo-Backend `application.yml` für MySQL, MQTT, Redis und Objektspeicher, trägt in der Demo-Frontend-Datei `config.ts` Cloud-API-App-Werte und optional Karten-/Streamkonfiguration ein, baut beide Images und startet den Compose-Stack. Pilot 2 wird anschließend mit der Demo-Webanmeldung verbunden.
+
+| Prüfung | Ergebnis für FlugDeck |
+| --- | --- |
+| Image-Archiv und Compose-Datei | Gehören zum eigenständigen Cloud-API-Demo-Stack, nicht zum FlightHub-Plugin-Paket. Weder `docker load` noch `docker-compose up` ist ein Installationsschritt für FlugDeck. |
+| Backend-/Frontend-Konfiguration | Demo-`application.yml` und `config.ts` enthalten andere Verbindungs- und Lizenzwerte als die serverseitige FlugDeck-Verbindung `flugdeck.openapi.v2`. Keine Demo-Defaults oder Credentials übernehmen. |
+| Pilot-2-Anmeldung und MQTT-Daten | Bestätigen allenfalls die Verbindung zum Demo-Broker. Sie prüfen weder den FlightHub-Plugin-Host noch den lesenden On-Premises-V2-Endpunkt. |
+
+Die Docker-Anleitung aktualisiert das ungewartete Demo nicht auf Cloud API v1.20. Das Archiv wurde nicht heruntergeladen oder ausgeführt; seine tatsächlichen Images, Abhängigkeiten und Sicherheitseigenschaften sind damit **nicht verifiziert**. FlugDecks eigener 0.5.0-Build und der pausierte V2-Workflow bleiben unverändert.
+
 ## Entwicklungsfolgen
 
 1. FlugDecks bisheriger Backend-Status bleibt ein Status des eigenen Plugins. v1.20 ändert keinen bestehenden Plugin-Vertrag und aktiviert keine Gerätesteuerung.
