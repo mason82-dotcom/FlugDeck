@@ -34,7 +34,7 @@ onUnmounted(() => subscription.dispose())
       <h3>Flugbuch</h3>
       <p class="headline" role="status"><i class="dot" aria-hidden="true"></i>{{ flightTitles[flight.phase] }}</p>
     </div>
-    <p class="error" v-if="flight.message">{{ flight.message }}</p>
+    <p class="error" v-if="flight.message" role="alert">{{ flight.message }}</p>
     <dl>
       <div><dt>Start</dt><dd>{{ time(flight.startedAt) }}</dd></div>
       <div><dt>Max. Höhe</dt><dd>{{ unit(flight.maxHeightM, 'm') }}</dd></div>
@@ -60,26 +60,29 @@ onUnmounted(() => subscription.dispose())
       <h3>Plugin-Backend</h3>
       <p role="status"><i class="dot" aria-hidden="true"></i>{{ bridgeError ? 'Panelverbindung gestört' : backendTitles[state.backend.phase] }}</p>
     </div>
-    <p class="error" v-if="bridgeError || state.backend.phase === 'error'">{{ bridgeError || state.backend.detail }}</p>
+    <p class="error" v-if="bridgeError || state.backend.phase === 'error'">
+      {{ bridgeError || state.backend.detail }} Bitte Netzwerk prüfen und die Verbindung erneut prüfen.
+    </p>
     <dl v-if="!bridgeError">
       <div><dt>Backend-Version</dt><dd>{{ state.backend.phase === 'ready' ? state.backend.detail : dash }}</dd></div>
       <div><dt>Geprüft um</dt><dd>{{ time(state.backend.checkedAt) }}</dd></div>
       <div><dt>Anfragedauer</dt><dd>{{ state.backend.durationMs === null ? dash : state.backend.durationMs + ' ms' }}</dd></div>
     </dl>
-    <button type="button" :disabled="pending || (!bridgeError && state.backend.phase === 'loading')" @click="check">
+    <button type="button" :aria-busy="pending || state.backend.phase === 'loading'" :disabled="pending || (!bridgeError && state.backend.phase === 'loading')" @click="check">
       {{ pending ? 'Prüfung läuft …' : 'Verbindung prüfen' }}
     </button>
   </section>
 </template>
 <style src="../shared/theme.css"></style>
 <style scoped>
-header { display: flex; align-items: center; gap: 8px; margin-bottom: 18px; }
-.mark { color: var(--fd-ok); font-size: 20px; }
-.headline { font-size: 21px; font-weight: 620; overflow-wrap: anywhere; }
-.section { margin-top: 18px; }
-.hint { color: var(--fd-muted); margin-block: 8px 14px; }
+header { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+.mark { color: var(--fd-ok); font-size: 16px; }
+.headline { font-size: 20px; font-weight: 600; line-height: 1.25; overflow-wrap: anywhere; }
+.section { margin-top: 24px; }
+.hint { margin-block: 8px 16px; }
 .error { margin-block: 12px; }
-dl { margin-block: 10px 18px; }
-.backend p { font-size: 15px; font-weight: 600; }
+dl { margin-block: 8px 16px; }
+.backend { margin-top: 24px; }
+.backend p { font-size: 16px; font-weight: 600; }
 button { width: 100%; }
 </style>

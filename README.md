@@ -6,6 +6,8 @@ Flugdeck ist ein FlightHub-2-Plugin mit Frontend und Backend. Es zeigt im Cockpi
 
 ![Das FlugDeck-Panel im DJI-Mock-Cockpit](docs/cockpit-panel.png)
 
+![Die Flugbuch-Seite im DJI-Mock-Projekt](docs/project-flugbuch.png)
+
 ## Funktionen nach Host
 
 | Host | Erweiterungspunkt | Inhalt |

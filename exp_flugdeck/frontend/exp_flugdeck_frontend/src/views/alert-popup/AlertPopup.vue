@@ -16,5 +16,5 @@ onUnmounted(() => subscription.dispose())
 </template>
 <style src="../shared/theme.css"></style>
 <style scoped>
-p { margin-block: 8px 14px; }
+p { margin-block: 8px 16px; }
 </style>
