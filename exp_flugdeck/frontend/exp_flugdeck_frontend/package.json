@@ -2,7 +2,7 @@
   "name": "exp_flugdeck_frontend",
   "private": true,
   "type": "module",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "scripts": {
     "test": "vitest run --maxWorkers=1 --minWorkers=1",
     "tsc": "vue-tsc --noEmit -p tsconfig.json && tsc -p ../../backend/exp_flugdeck_backend/tsconfig.json",
@@ -17,8 +17,10 @@
     "@rsbuild/core": "1.7.6",
     "@rsbuild/plugin-vue": "1.2.9",
     "@types/node": "20.19.43",
+    "@vitejs/plugin-vue": "5.2.4",
+    "happy-dom": "15.11.7",
     "typescript": "5.5.4",
-    "vue-tsc": "3.3.9",
-    "vitest": "2.1.9"
+    "vitest": "2.1.9",
+    "vue-tsc": "3.3.9"
   }
 }
