@@ -45,6 +45,8 @@ Die Member liegen unter `exp_flugdeck/`. Der Entry ruft `ctx.apiCall('/plugin/in
 
 [Projektprüfung und offene DJI-Befunde](docs/pruefung-0.2.1.md)
 
+[DJI On-Premises: Versionshinweise, Anmeldung und OpenAPI V2.0 im Abgleich](docs/dji-on-premises-referenz-2026-11-08.md)
+
 ## Prüfen und verpacken
 
 Die Tests decken Host-Auswahl, Doppelklick, Zeitüberschreitung, Gatewayfehler, Wiederholung und das Entladen während einer Anfrage ab. Ein Vue-Test montiert das Panel und prüft Zustandswechsel, deaktivierte Bedienelemente und das Aufräumen beim Schließen. Im Browser wurde das Cockpit-Panel des DJI-Mock-Hosts geöffnet. Der Test bestätigte die Version 0.2.1, unterbrach anschließend den Gateway-Aufruf und prüfte die erfolgreiche Wiederholung nach Wiederherstellung. Uhrzeit und Anfragedauer beziehen sich auf den letzten abgeschlossenen Aufruf, einschließlich Fehlerantworten.
