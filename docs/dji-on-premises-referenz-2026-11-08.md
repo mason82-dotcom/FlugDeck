@@ -1,6 +1,6 @@
 # DJI FlightHub 2 On-Premises: Referenzabgleich
 
-Stand: 8. November 2026. Abgleich der drei unten genannten DJI-Handbuchseiten, ergänzt um Organisationsseiten und die verlinkte Schnittstellendokumentation mit FlugDeck 0.2.1. Das Handbuch beschreibt Funktionen des DJI-Produkts; daraus folgt keine bereits implementierte FlugDeck-Funktion und keine Freigabe für eine konkrete Installation.
+Stand: 8. November 2026. Abgleich der drei unten genannten DJI-Handbuchseiten, ergänzt um Organisationsseiten und die verlinkte Schnittstellendokumentation mit FlugDeck 0.5.0. Das Handbuch beschreibt Funktionen des DJI-Produkts; daraus folgt keine Freigabe für eine konkrete Installation. Den getrennten [OpenAPI-V1.0-Vertrag](dji-fh2-openapi-v1-referenz-2026-11-08.md) nicht mit On-Premises V2.0 vermischen.
 
 Für den separaten DJI-Cloud-API-Tutorial-Stand siehe [Cloud API v1.20 und Cloud API 2 im Abgleich](dji-cloud-api-referenz-2026-11-08.md).
 
@@ -10,7 +10,7 @@ Für den separaten DJI-Cloud-API-Tutorial-Stand siehe [Cloud API v1.20 und Cloud
 2. [Registrierung und Anmeldung](https://fh.dji.com/user-manual/de/registration-and-login.html) – Kontoanmeldung, SSO und Grenzen.
 3. [On-Premises OpenAPI V2.0](https://fh.dji.com/user-manual/de/custom-development/open-api/private-cloud-v2.html) – Zweck, Funktionsliste, Authentifizierung, Beispiele.
 
-Die OpenAPI-Seite verlinkt für konkrete Schemata und Berechtigungen auf eine [separate Apifox-Schnittstellendokumentation](https://41b04hdzmc.apifox.cn/) mit [Authentifizierungsanleitung](https://41b04hdzmc.apifox.cn/9022450m0). Diese drei Handbuchseiten allein sind kein vollständiger Endpoint-Contract. Für einen späteren Adapter sind dort die konkreten Operationen und die Authentifizierungsanleitung zusätzlich gegen die installierte DJI-Version zu prüfen.
+Die OpenAPI-Seite verlinkt für konkrete Schemata und Berechtigungen auf eine [separate Apifox-Schnittstellendokumentation](https://41b04hdzmc.apifox.cn/) mit [Authentifizierungsanleitung](https://41b04hdzmc.apifox.cn/9022450m0). Diese drei Handbuchseiten allein sind kein vollständiger Endpoint-Contract. Für den vorhandenen lesenden Adapter sind Operation und Authentifizierung zusätzlich gegen die installierte DJI-Version zu prüfen.
 
 ## Ergänzung: Organisationsseiten und konkrete API-Pfade
 
@@ -27,15 +27,15 @@ Konkrete Pfade finden sich in der von DJI separat verlinkten [On-Premises-V2.0-S
 
 Für einen ersten lesenden Adapter eignen sich nur die drei GET-Operationen als Kandidaten; die PUT-Operation verändert Organisationsdaten. Bei `GET .../projects` nennt DJI unter anderem `page`, `page_size`, `usage`, `sort_column` und `sort_type`, mit unterschiedlicher Antwortform für `usage=simple`. `GET .../organizations/{uuid}` kann `mfa_enabled` zurückliefern; der Geräte-Bindecode wird bei bestimmten Mitgliedsrollen zu `null`. Der Beispiel-Response der `users/current`-Seite zeigt allerdings lediglich `result` und `path` statt der beschriebenen Mitgliedsfelder: Response-Schema vor Implementierung zusätzlich prüfen. Apifox-generierte cURL-Beispiele enthalten leere Platzhalter und doppelte Header; sie sind keine unmittelbar lauffähigen Testkommandos.
 
-Für die On-Premises-API nennt DJI überwiegend `x-user-token` und `X-Project-Uuid`; `{uuid}` im Pfad ist die Organisations-UUID und nicht mit der Projekt-UUID gleichzusetzen. Benötigte Rechte, Tokenbeschaffung und reale Antwortformen müssen gegen den Zielmandanten validiert werden. FlugDeck 0.2.1 ruft keinen dieser Endpunkte auf.
+Für die On-Premises-API nennt DJI überwiegend `x-user-token` und `X-Project-Uuid`; `{uuid}` im Pfad ist hier die Organisations-UUID und nicht mit der Projekt-UUID gleichzusetzen. Benötigte Rechte, Tokenbeschaffung und reale Antwortformen müssen gegen den Zielmandanten validiert werden. FlugDeck 0.5.0 ruft keinen der vier oben aufgelisteten Organisationsendpunkte auf; sein pausierter Workflow liest einen separaten Projekt-Topologie-Endpunkt.
 
 ## Versions- und Architekturabgleich
 
-| DJI-Aussage | Abgleich mit FlugDeck 0.2.1 | Konsequenz |
+| DJI-Aussage | Abgleich mit FlugDeck 0.5.0 | Konsequenz |
 | --- | --- | --- |
 | Das integrierte Plugin-Rahmenwerk wurde mit **On-Premises V2.0.1** eingeführt, zunächst nur als Beta in China; weitere Regionen wurden für spätere Versionen angekündigt. | FlugDeck baut ein Paket mit dem DJI-Plugin-SDK und dem Extension Point `cockpit.ui.left-panel`. Der Mock-Host-Test und `UPLOAD_READY` belegen keinen Betrieb in einem echten, regional verfügbaren Mandanten. | Vor Installation Produktversion, Region, Plugin-Freischaltung und Ziel-Cockpit prüfen. Eine V2.0-OpenAPI-Verfügbarkeit beweist keine Plugin-Verfügbarkeit. |
-| Die **On-Premises OpenAPI V2.0** ist eine REST-Schnittstelle für externe Systemintegration. V2.0 erschien mit der On-Premises-Version V1.6 und ergänzt über 300 Schnittstellen gegenüber 67 in V1.0. | FlugDeck ruft `ctx.apiCall('/plugin/invoke')` mit `exp_flugdeck_backend` und `flugdeck.status` auf. Es enthält keinen OpenAPI-V2-Client. | Plugin-Gateway und externe OpenAPI als getrennte Adapter und Berechtigungswege behandeln. Kein OpenAPI-Token in Plugin-Frontend oder ZIP einbetten. |
-| Die meisten OpenAPI-V2-Aufrufe erwarten `x-user-token` und `X-Project-Uuid`; die Beispiele zeigen zusätzlich `X-Request-Id` und `X-Language`. | Der aktuelle Handler verwendet keine dieser Header; der Plugin-Host übernimmt seine eigene Authentifizierung und das Routing. | Ein künftiger OpenAPI-Adapter benötigt projektgebundene Rechte, Header- und Token-Lebenszyklus sowie serverseitige Secret-Verwaltung. Credentials werden später getrennt übergeben. |
+| Die **On-Premises OpenAPI V2.0** ist eine REST-Schnittstelle für externe Systemintegration. V2.0 erschien mit der On-Premises-Version V1.6 und ergänzt über 300 Schnittstellen gegenüber 67 in V1.0. | FlugDeck besitzt einen pausierten, serverseitigen GET-Workflow für Projekt-Topologien; `flugdeck.status` und `flugdeck.devices` laufen über das Plugin-Gateway. | Plugin-Gateway und externe OpenAPI als getrennte Adapter und Berechtigungswege behandeln. Kein OpenAPI-Token in Plugin-Frontend oder ZIP einbetten. |
+| Die meisten OpenAPI-V2-Aufrufe erwarten `x-user-token` und `X-Project-Uuid`; die Beispiele zeigen zusätzlich `X-Request-Id` und `X-Language`. | Der Plugin-Handler verwendet keine OpenAPI-Header; der pausierte Adapter setzt Token und Projekt-UUID serverseitig für seinen GET. | Vor Aktivierung projektgebundene Rechte, Token-Lebenszyklus, Secret-Verwaltung und echte Antwort gegen den Mandanten prüfen. Credentials werden später getrennt übergeben. |
 | `GET /openapi/v2.0/drc/health` liefert bei `code: 0` einen gesunden **Echtzeitsteuerungsdienst**. | Die Anzeige „Erreichbar“ bezieht sich derzeit nur auf die Antwort des eigenen `flugdeck.status`-Handlers. | Weder „FlightHub insgesamt gesund“ noch „DRC bereit“ aus dem Plugin-Status ableiten. Einen DRC-Check später als separaten, eindeutig benannten Status ausweisen. |
 | Der Schnellstart zeigt einen Projektlisten-GET und einen Livestream-Start-POST als OpenAPI-Beispiele. | FlugDeck hat weder Projektlisten noch Livestream, Steuerung, Missionen oder Mediendaten implementiert. | Die DJI-Funktionsliste ist eine Roadmap-Quelle, kein Nachweis vorhandener Funktionen. Schreibende Aufrufe erst nach separatem Entwurf, Berechtigungsprüfung und Tests. |
 | V2.0 nennt neue Cluster- und HTTPS-Eigenschaften sowie geänderte Upgrade-, Backup- und Wartungsverfahren. Dock 4 unterstützt dort nur HTTPS. | FlugDeck betreibt keine eigene FlightHub-On-Premises-Instanz und konfiguriert keinen DJI-Server. | Integrations- und Deploymentschritte auf die reale Host-Version abstimmen; keine V1.x-Upgrade-Anweisungen auf V2.0 übertragen. |
@@ -58,9 +58,9 @@ Für On-Premises V2.0 vermerken die Versionshinweise außerdem, dass die Anpassu
 
 | Prüffrage | Gegenwärtiger Nachweis | Offen |
 | --- | --- | --- |
-| Funktioniert der Plugin-Build im DJI-Mock-Host? | Ja: Paketbau, Validierung und Browser-Smoke-Test aus [Prüfung 0.2.1](pruefung-0.2.1.md). | Installation und Verhalten im echten FlightHub-2-Cockpit. |
+| Funktioniert der Plugin-Build im DJI-Mock-Host? | Frühere Paketprüfung und Browser-Smoke-Test aus [Prüfung 0.2.1](pruefung-0.2.1.md); der aktuelle 0.5.0-Workflow ist damit nicht im Zielmandanten geprüft. | Installation und Verhalten im echten FlightHub-2-Cockpit. |
 | Unterstützt der Zielmandant das Plugin-Rahmenwerk? | DJI nennt V2.0.1 und China-Beta. | Installierte Version, Region, Lizenz/Freischaltung und Extension Point im realen Mandanten. |
-| Ist ein OpenAPI-V2-Adapter lauffähig? | Nein; nur offizielle Funktionsübersicht und Beispiele als Referenz gelesen. | Exakter Endpoint-Contract, Rechte, Token-Beschaffung und sichere Aufbewahrung, projektgebundener Test. |
+| Ist ein OpenAPI-V2-Adapter lauffähig? | Lesender Topologie-Adapter implementiert und mit Mock-Daten getestet; Workflow ausgeliefert, aber pausiert. | Rechte, Token-Beschaffung und sichere Aufbewahrung, reale Antwort und projektgebundener Test. |
 | Sind Login und SSO geklärt? | Allgemeine DJI-Anmeldung und historische On-Premises-Kontomodi dokumentiert. | Konfiguration und Berechtigungen des konkreten Zielsystems. |
 
 Keine Zugangsdaten, echten Projekt-UUIDs, Geräte-Seriennummern oder Session-URLs in dieses Dokument oder in Beispieltests übernehmen.

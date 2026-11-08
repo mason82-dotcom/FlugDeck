@@ -2,6 +2,8 @@
 
 Stand: 8. November 2026. FlugDeck 0.5.0 bindet die Geräteansicht an einen **serverseitigen Snapshot-Pfad**. Die Quelle ist die [DJI-Dokumentation Get Project Device Thing Model](https://41b04hdzmc.apifox.cn/473847970e0): `GET /openapi/v2.0/manage/api/v1/projects/{proj_uuid}/topologies`. Die Antwort enthält `host`, `parents`, `device_online_status`, `is_device_pending_offline` und `device_state`. Sie kann reine Controller-Topologien sowie bestimmte Offline-Geräte ausfiltern. Eine leere Antwort ist deshalb kein Nachweis, dass keine Hardware existiert. Die [OpenAPI V2.0 Übersicht](https://fh.dji.com/user-manual/de/custom-development/open-api/private-cloud-v2.html) fordert für die meisten Aufrufe `x-user-token` und `X-Project-Uuid`.
 
+Die separat dokumentierte [FlightHub 2 OpenAPI V1.0](dji-fh2-openapi-v1-referenz-2026-11-08.md) nutzt `/openapi/v0.1/project/device` und eine andere Geräteantwort. Diese Quelle ist kein Ersatz für den V2-Vertrag dieses Adapters.
+
 ## Datenfluss
 
 1. Der Workflow `flugdeck-read-devices` wird nach Freischaltung alle 30 Sekunden ausgelöst. Er ist im ausgelieferten Paket **pausiert**.
