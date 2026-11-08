@@ -73,6 +73,50 @@ describe('Flugbuch-Erkennung', () => {
     expect(tracker.get()).toMatchObject({ maxHeightM: 82, maxSpeedMs: 6 })
   })
 
+  it('schließt einen Flug ab, der endet, während sein start noch läuft', async () => {
+    let releaseStart!: () => void
+    const { api, tracker } = setup({ startFlight: vi.fn(() => new Promise<void>(resolve => { releaseStart = resolve })) })
+    const started = tracker.update({ projectId: 'p', droneSn: 'SN', flightId: 'a' })
+    await vi.waitFor(() => expect(api.startFlight).toHaveBeenCalled())
+    const ended = tracker.update({ projectId: 'p', droneSn: 'SN', flightId: null })
+    expect(api.finishFlight).not.toHaveBeenCalled()
+    releaseStart()
+    await Promise.all([started, ended])
+    expect(api.finishFlight).toHaveBeenCalledWith(expect.objectContaining({ flightKey: 'a' }))
+    expect(tracker.get()).toMatchObject({ phase: 'idle', flightKey: null })
+  })
+
+  it('startet bei schnellen Wechseln a→b→ohne Flug keinen veralteten Flug', async () => {
+    let releaseStart!: () => void
+    const { api, tracker } = setup({ startFlight: vi.fn(() => new Promise<void>(resolve => { releaseStart = resolve })) })
+    void tracker.update({ projectId: 'p', droneSn: 'SN', flightId: 'a' })
+    await vi.waitFor(() => expect(api.startFlight).toHaveBeenCalled())
+    // b und das Flugende treffen ein, während start(a) noch läuft
+    void tracker.update({ projectId: 'p', droneSn: 'SN', flightId: 'b' })
+    const done = tracker.update({ projectId: 'p', droneSn: 'SN', flightId: null })
+    releaseStart()
+    await done
+    expect(api.startFlight.mock.calls.map(call => call[0].flightKey)).toEqual(['a'])
+    expect(api.finishFlight).toHaveBeenCalledTimes(1)
+    expect(tracker.get().flightKey).toBeNull()
+  })
+
+  it('speichert den Flug nach, sobald das Projekt bekannt wird', async () => {
+    const { api, tracker } = setup()
+    await tracker.update({ projectId: null, droneSn: 'SN', flightId: 'a' })
+    await tracker.update({ projectId: 'p', droneSn: 'SN', flightId: 'a' })
+    expect(api.startFlight).toHaveBeenCalledWith(expect.objectContaining({ flightKey: 'a', projectId: 'p' }))
+    expect(tracker.get()).toMatchObject({ phase: 'recording', message: '' })
+  })
+
+  it('setzt Maximalwerte und Meldungen nach dem Abschluss zurück', async () => {
+    const { tracker } = setup()
+    await tracker.update({ projectId: 'p', droneSn: 'SN', flightId: 'a' })
+    tracker.sample({ ...emptyReadout, heightM: 40 })
+    await tracker.update({ projectId: 'p', droneSn: 'SN', flightId: null })
+    expect(tracker.get()).toMatchObject({ phase: 'idle', maxHeightM: null, maxSpeedMs: null, message: '', lastFinished: { flightKey: 'a' } })
+  })
+
   it('meldet nach dispose keine Änderungen mehr', async () => {
     const { tracker, onChange } = setup()
     tracker.dispose()

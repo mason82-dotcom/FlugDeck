@@ -29,6 +29,15 @@ interface TrackerOptions {
   readonly onChange: (state: FlightTrackerState) => void
 }
 
+/** Der Flug, den der Tracker gerade führt; persisted = Backend hat start bestätigt. */
+interface CurrentFlight {
+  readonly key: string
+  readonly startedAt: number
+  persisted: boolean
+}
+
+const NO_PROJECT = 'Kein Projekt im Cockpit-Kontext; der Flug wird gespeichert, sobald eines bekannt ist.'
+
 function maxOf (current: number | null, next: number | null): number | null {
   if (next === null) return current
   return current === null ? next : Math.max(current, next)
@@ -36,12 +45,16 @@ function maxOf (current: number | null, next: number | null): number | null {
 
 /**
  * Führt das Flugbuch automatisch: Eine neue flightId des Cockpits startet einen Eintrag,
- * ihr Wegfall (oder Wechsel) schließt ihn mit Maximalhöhe und -geschwindigkeit ab.
- * Backend-Aufrufe laufen nacheinander, damit start und finish nie überholen.
+ * ihr Wegfall (oder Wechsel) schließt ihn mit Maximalwerten ab.
+ *
+ * Alle Übergänge laufen nacheinander in einer Warteschlange und gleichen jeweils gegen den
+ * zuletzt gemeldeten Kontext ab. So kann ein veralteter Kontext keinen Flug mehr starten, und
+ * ein finish wartet immer auf die Antwort des zugehörigen start.
  */
 export function createFlightTracker ({ api, now, onChange }: TrackerOptions) {
   let state = initialFlight
-  let persisted = false
+  let current: CurrentFlight | null = null
+  let desired: FlightContext = { projectId: null, droneSn: null, flightId: null }
   let latest: TelemetryReadout | null = null
   let disposed = false
   let queue: Promise<void> = Promise.resolve()
@@ -51,60 +64,65 @@ export function createFlightTracker ({ api, now, onChange }: TrackerOptions) {
     if (!disposed) onChange(state)
   }
 
-  function enqueue (task: () => Promise<void>): Promise<void> {
-    queue = queue.then(task, task)
-    return queue
-  }
-
-  function begin (flightKey: string, context: FlightContext) {
-    const startedAt = now()
-    persisted = false
-    // Startwerte aus der letzten Probe: der Host meldet Telemetrie nicht zwingend nach dem Flugbeginn erneut.
-    set({ phase: 'recording', flightKey, startedAt, maxHeightM: latest?.heightM ?? null, maxSpeedMs: latest?.horizontalSpeedMs ?? null, message: '' })
+  async function persistStart (flight: CurrentFlight, context: FlightContext) {
     if (!context.projectId) {
-      set({ phase: 'error', message: 'Kein Projekt im Cockpit-Kontext; der Flug wird nicht gespeichert.' })
-      return Promise.resolve()
+      set({ phase: 'error', message: NO_PROJECT })
+      return
     }
-    const projectId = context.projectId
-    return enqueue(async () => {
-      try {
-        await api.startFlight({ flightKey, projectId, droneSn: context.droneSn ?? '', startedAt })
-        persisted = true
-      } catch (error) {
-        if (state.flightKey === flightKey) set({ phase: 'error', message: describeFailure(error) })
-      }
-    })
+    try {
+      await api.startFlight({ flightKey: flight.key, projectId: context.projectId, droneSn: context.droneSn ?? '', startedAt: flight.startedAt })
+      flight.persisted = true
+      if (current === flight) set({ phase: 'recording', message: '' })
+    } catch (error) {
+      if (current === flight) set({ phase: 'error', message: describeFailure(error) })
+    }
   }
 
-  function end () {
-    const { flightKey, maxHeightM, maxSpeedMs } = state
-    if (flightKey === null) return Promise.resolve()
-    const wasPersisted = persisted
+  async function finishCurrent () {
+    const flight = current
+    if (flight === null) return
+    const { maxHeightM, maxSpeedMs } = state
     const finishedAt = now()
-    persisted = false
-    set({ phase: 'idle', flightKey: null, startedAt: null })
-    return enqueue(async () => {
-      if (!wasPersisted) return
-      try {
-        const entry = await api.finishFlight({ flightKey, finishedAt, maxHeightM, maxSpeedMs })
-        set({ lastFinished: entry, message: '' })
-      } catch (error) {
-        set({ phase: state.flightKey === null ? 'error' : state.phase, message: describeFailure(error) })
-      }
-    })
+    current = null
+    set({ phase: 'idle', flightKey: null, startedAt: null, maxHeightM: null, maxSpeedMs: null, message: '' })
+    if (!flight.persisted) return
+    try {
+      const entry = await api.finishFlight({ flightKey: flight.key, finishedAt, maxHeightM, maxSpeedMs })
+      set({ lastFinished: entry })
+    } catch (error) {
+      if (current === null) set({ phase: 'error', message: 'Flug konnte nicht abgeschlossen werden: ' + describeFailure(error) })
+    }
+  }
+
+  async function reconcile () {
+    const context = desired
+    const target = context.flightId ?? null
+    if (current !== null && current.key !== target) await finishCurrent()
+    if (target === null) return
+    if (current === null) {
+      current = { key: target, startedAt: now(), persisted: false }
+      // Startwerte aus der letzten Probe: der Host meldet Telemetrie nicht zwingend nach Flugbeginn erneut.
+      set({
+        phase: 'recording', flightKey: target, startedAt: current.startedAt,
+        maxHeightM: latest?.heightM ?? null, maxSpeedMs: latest?.horizontalSpeedMs ?? null, message: '',
+      })
+      await persistStart(current, context)
+    } else if (!current.persisted && context.projectId) {
+      // Gleicher Flug, aber noch nicht gespeichert (Projekt kam später oder start schlug fehl): erneut versuchen.
+      await persistStart(current, context)
+    }
   }
 
   return {
     get: () => state,
-    /** Neuer Cockpit-Kontext: erkennt Flugbeginn, -ende und Wechsel anhand von flightId. */
-    async update (context: FlightContext): Promise<void> {
-      if (disposed) return
-      const flightId = context.flightId ?? null
-      if (flightId === state.flightKey) return
-      if (state.flightKey !== null) await end()
-      if (flightId !== null) await begin(flightId, context)
+    /** Neuer Cockpit-Kontext; das Promise erfüllt sich, wenn der Abgleich dafür erledigt ist. */
+    update (context: FlightContext): Promise<void> {
+      if (disposed) return queue
+      desired = context
+      queue = queue.then(reconcile, reconcile)
+      return queue
     },
-    /** Telemetrieprobe während eines Flugs: führt die Maximalwerte nach. */
+    /** Telemetrieprobe: führt während eines Flugs die Maximalwerte nach. */
     sample (readout: TelemetryReadout) {
       latest = readout
       if (disposed || state.flightKey === null) return
@@ -114,6 +132,10 @@ export function createFlightTracker ({ api, now, onChange }: TrackerOptions) {
     },
     /** Wartet auf laufende Backend-Aufrufe (Tests, geordnetes Entladen). */
     settled: () => queue,
+    /**
+     * Beendet nur die Anzeige. Ein laufender Flug bleibt im Backend aktiv und wird beim nächsten
+     * Öffnen mit derselben flightId weitergeführt (siehe docs/architecture.md, Abschnitt 4.2).
+     */
     dispose () { disposed = true },
   }
 }

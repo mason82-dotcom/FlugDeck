@@ -32,6 +32,7 @@ export async function activate (ctx: AppProjectContext) {
 
   function applyProject (projectId: string | null) {
     if (projectId === state.get().projectId) return
+    generation++ // verwirft noch laufende Antworten für das vorige Projekt
     state.update(() => ({ ...initialFlightlog, projectId }))
     void reload()
   }

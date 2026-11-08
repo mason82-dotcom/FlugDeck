@@ -55,6 +55,19 @@ describe('Project: Flugbuch', () => {
     expect(apiCall).toHaveBeenCalledTimes(2)
   })
 
+  it('verwirft eine verspätete Liste, wenn das Projekt inzwischen gewechselt hat', async () => {
+    const project = capability<{ projectId: string | null; organizationId: null; userInfo: object }>({ projectId: 'p-1', organizationId: null, userInfo: {} })
+    let finish!: (value: unknown) => void
+    const apiCall = vi.fn(() => new Promise(resolve => { finish = resolve }))
+    await activate('project', apiCall, { 'project:context': project })
+    const session = views.flightlog.handle.mock.lastCall![1]
+    await vi.waitFor(() => expect(apiCall).toHaveBeenCalled())
+    project.emit({ projectId: null, organizationId: null, userInfo: {} })
+    finish({ code: 0, data: { items: [{ flightKey: 'f-1' }], total: 1 } })
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(session.state.get()).toMatchObject({ projectId: null, items: [], phase: 'error' })
+  })
+
   it('meldet fehlendes Projekt und Backendfehler verständlich', async () => {
     const apiCall = vi.fn().mockRejectedValue(new Error('Gateway unterbrochen'))
     await activate('project', apiCall, { 'project:context': capability({ projectId: null, organizationId: null, userInfo: {} }) })
@@ -74,6 +87,9 @@ describe('Plan: Flugbuch-Notiz', () => {
     expect(session.state.get()).toEqual({ available: true, note: 'Kopie' })
     session.methods.setNote({ note: '  Inspektion Brücke  ' })
     await expect(contribution.validate()).resolves.toEqual({ valid: true })
+    session.methods.setNote({ note: 'x'.repeat(201) })
+    await expect(contribution.validate()).resolves.toMatchObject({ valid: false })
+    session.methods.setNote({ note: '  Inspektion Brücke  ' })
     await expect(contribution.onSubmit()).resolves.toEqual({ biz_ext: { flugdeck: { note: 'Inspektion Brücke' } } })
     form.emit({ available: true, revision: 2, formInstanceId: 'form-2' })
     expect(session.state.get().note).toBe('')

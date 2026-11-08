@@ -116,6 +116,8 @@ Keins. Das Flugbuch wird selten gelesen, die Telemetrie kommt per Push vom Host.
 - **Vorschlag:** `finish` übernimmt das Maximum aus gespeichertem und gemeldetem Wert. Dazu den Datensatz lesen und dann bedingt aktualisieren. Das ist nicht atomar, reicht für Maximalwerte aber aus.
 
 ### 4.2 Panel wird während des Flugs geschlossen (wichtigste Lücke)
+
+*Stand nach dem Code-Review:* Der Tracker gleicht jetzt alle Übergänge nacheinander mit dem zuletzt gemeldeten Kontext ab. Ein Flug, der endet, während sein `start` noch läuft, wird danach abgeschlossen. Wird das Projekt erst später bekannt, wird der Flug nachgetragen. Kommen mehrere Kontextwechsel im selben Abgleich-Durchlauf an, gilt nur der letzte. Ein Flug, der kürzer ist als eine `start`-Antwort, wird deshalb nicht erfasst.
 Der Eintrag bleibt `active`, solange niemand das Cockpit mit derselben `flightId` wieder öffnet. Drei Wege, das zu lösen:
 
 | Option | Ablauf | Vorteile | Nachteile |
@@ -129,7 +131,10 @@ Der Eintrag bleibt `active`, solange niemand das Cockpit mit derselben `flightId
 ### 4.3 Abschluss schlägt wegen des Netzes fehl
 Der Client wiederholt den Aufruf bis zu 3-mal mit 1 s, 2 s und 4 s Wartezeit. `idempotencyKey` ist dabei `finish:<flightKey>`. Danach bleibt Option A aus 4.2 als Rückfallebene.
 
-### 4.4 Berechtigungen und Datenschutz *[verifizieren]*
+### 4.4 Eindeutigkeit von `flight_key` über Mandanten *[verifizieren]*
+Die physische Tabelle teilen sich alle Mandanten. `flight_key` ist global `UNIQUE`, und `createIfAbsent` prüft per `ON CONFLICT` genau diese Spalte. So machen es auch die DJI-Beispiele. Ein Index über `(tenant_id, flight_key)` würde `createIfAbsent` brechen, weil der Plugin-Code `tenant_id` nicht verwenden darf. Das ist nur sicher, wenn die `flightId` des Cockpits global eindeutig ist, zum Beispiel eine UUID. Vor dem Produktivbetrieb klären. Falls nicht: `flight_key` aus `projectId/flightId` bilden, denn Projekt-IDs sind global eindeutig.
+
+### 4.5 Berechtigungen und Datenschutz *[verifizieren]*
 `flightlog.list` filtert nach der `projectId`, die der Client schickt. Zu klären ist, ob das Gateway den Projektbezug erzwingt oder nur den Mandanten über `tenant_id`. Erzwingt es den Projektbezug nicht, können Nutzer desselben Mandanten fremde Projekt-Flugbücher abfragen. Mögliche Maßnahmen: projektbezogenen Request-Kontext im Backend prüfen, falls die Plattform einen liefert. Sonst das Risiko dokumentieren und akzeptieren. `drone_sn` ist ein Gerätebezug und nicht personenbezogen *[Annahme]*.
 
 ## 5. Last und Skalierung

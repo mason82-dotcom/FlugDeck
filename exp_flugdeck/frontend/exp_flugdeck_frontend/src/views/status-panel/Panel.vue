@@ -58,7 +58,7 @@ onUnmounted(() => subscription.dispose())
 
     <div class="readout backend" :data-phase="bridgeError ? 'error' : state.backend.phase">
       <h3>Plugin-Backend</h3>
-      <p><i class="dot" aria-hidden="true"></i>{{ bridgeError ? 'Panelverbindung gestört' : backendTitles[state.backend.phase] }}</p>
+      <p role="status"><i class="dot" aria-hidden="true"></i>{{ bridgeError ? 'Panelverbindung gestört' : backendTitles[state.backend.phase] }}</p>
     </div>
     <p class="error" v-if="bridgeError || state.backend.phase === 'error'">{{ bridgeError || state.backend.detail }}</p>
     <dl v-if="!bridgeError">

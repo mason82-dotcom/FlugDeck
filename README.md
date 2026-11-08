@@ -61,7 +61,7 @@ Berechtigungen im Frontend: `platform:http`, `cockpit:context`, `cockpit:telemet
 
 ## Prüfen und verpacken
 
-`pnpm test` führt 24 Tests aus:
+`pnpm test` führt 29 Tests aus:
 
 - Cockpit: Backend-Prüfung, Telemetrie und Flugerkennung
 - Flugtracker: Wechsel, fehlendes Projekt, Startfehler und Maximalwerte

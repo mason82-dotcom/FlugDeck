@@ -33,7 +33,7 @@ export async function activate (ctx: AppPlanContext) {
 
   await planNote.handle(ctx, {
     state,
-    methods: { setNote: ({ note }) => state.update(current => ({ ...current, note: String(note).slice(0, NOTE_MAX_LENGTH) })) },
+    methods: { setNote: ({ note }) => state.update(current => ({ ...current, note: String(note) })) },
   })
   await ctx.extensions.contribute('plan-note', {
     render: () => planNote.get(ctx),
